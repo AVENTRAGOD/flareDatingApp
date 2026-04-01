@@ -1,0 +1,73 @@
+﻿Analyzing flare_dating_app...                                   
+
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\add_review.dart:55:3 - prefer_const_constructors_in_immutables
+   info - The variable name 'review_upsert' isn't a lowerCamelCase identifier - lib\dataconnect_generated\add_review.dart:63:31 - non_constant_identifier_names
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\add_review.dart:90:3 - prefer_const_constructors_in_immutables
+   info - The variable name 'review_upsert' isn't a lowerCamelCase identifier - lib\dataconnect_generated\add_review.dart:91:19 - non_constant_identifier_names
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\add_review.dart:133:3 - prefer_const_constructors_in_immutables
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\create_movie.dart:51:3 - prefer_const_constructors_in_immutables
+   info - The variable name 'movie_insert' isn't a lowerCamelCase identifier - lib\dataconnect_generated\create_movie.dart:58:32 - non_constant_identifier_names
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\create_movie.dart:85:3 - prefer_const_constructors_in_immutables
+   info - The variable name 'movie_insert' isn't a lowerCamelCase identifier - lib\dataconnect_generated\create_movie.dart:86:19 - non_constant_identifier_names
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\create_movie.dart:128:3 - prefer_const_constructors_in_immutables
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\delete_review.dart:53:3 - prefer_const_constructors_in_immutables
+   info - The variable name 'review_delete' isn't a lowerCamelCase identifier - lib\dataconnect_generated\delete_review.dart:61:35 - non_constant_identifier_names
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\delete_review.dart:90:3 - prefer_const_constructors_in_immutables
+   info - The variable name 'review_delete' isn't a lowerCamelCase identifier - lib\dataconnect_generated\delete_review.dart:91:10 - non_constant_identifier_names
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\delete_review.dart:125:3 - prefer_const_constructors_in_immutables
+   info - Library names are not necessary - lib\dataconnect_generated\generated.dart:1:9 - unnecessary_library_name
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\get_movie_by_id.dart:75:3 - prefer_const_constructors_in_immutables
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\get_movie_by_id.dart:128:3 - prefer_const_constructors_in_immutables
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\get_movie_by_id.dart:180:3 - prefer_const_constructors_in_immutables
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\get_movie_by_id.dart:221:3 - prefer_const_constructors_in_immutables
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\get_movie_by_id.dart:258:3 - prefer_const_constructors_in_immutables
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\get_movie_by_id.dart:293:3 - prefer_const_constructors_in_immutables
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\list_movies.dart:62:3 - prefer_const_constructors_in_immutables
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\list_movies.dart:101:3 - prefer_const_constructors_in_immutables
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\list_user_reviews.dart:58:3 - prefer_const_constructors_in_immutables
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\list_user_reviews.dart:110:3 - prefer_const_constructors_in_immutables
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\list_user_reviews.dart:151:3 - prefer_const_constructors_in_immutables
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\list_user_reviews.dart:188:3 - prefer_const_constructors_in_immutables
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\list_users.dart:52:3 - prefer_const_constructors_in_immutables
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\list_users.dart:89:3 - prefer_const_constructors_in_immutables
+   info - The private field _titleInput could be 'final' - lib\dataconnect_generated\search_movie.dart:4:20 - prefer_final_fields
+   info - The private field _genre could be 'final' - lib\dataconnect_generated\search_movie.dart:5:20 - prefer_final_fields
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\search_movie.dart:73:3 - prefer_const_constructors_in_immutables
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\search_movie.dart:112:3 - prefer_const_constructors_in_immutables
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\search_movie.dart:162:3 - prefer_const_constructors_in_immutables
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\upsert_user.dart:49:3 - prefer_const_constructors_in_immutables
+   info - The variable name 'user_upsert' isn't a lowerCamelCase identifier - lib\dataconnect_generated\upsert_user.dart:56:30 - non_constant_identifier_names
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\upsert_user.dart:83:3 - prefer_const_constructors_in_immutables
+   info - The variable name 'user_upsert' isn't a lowerCamelCase identifier - lib\dataconnect_generated\upsert_user.dart:84:19 - non_constant_identifier_names
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\dataconnect_generated\upsert_user.dart:118:3 - prefer_const_constructors_in_immutables
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\discover_screen.dart:182:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\discover_screen.dart:217:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\discover_screen.dart:272:53 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\discover_screen.dart:314:75 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\discover_screen.dart:330:39 - deprecated_member_use
+   info - The import of 'package:flutter/foundation.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' - lib\screens\email_sign_up_screen.dart:4:8 - unnecessary_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\email_sign_up_screen.dart:118:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\email_sign_up_screen.dart:157:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\email_sign_up_screen.dart:158:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\email_sign_up_screen.dart:160:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\email_sign_up_screen.dart:161:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\location_screen.dart:175:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\location_screen.dart:210:45 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\main_container_screen.dart:32:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\onboarding_screen.dart:53:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\onboarding_screen.dart:54:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\onboarding_screen.dart:55:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\onboarding_screen.dart:125:43 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\profile_details_screen.dart:150:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\profile_details_screen.dart:294:51 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\profile_details_screen.dart:336:49 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\welcome_screen.dart:116:45 - deprecated_member_use
+   info - Don't invoke 'print' in production code - lib\services\database_service.dart:19:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\database_service.dart:29:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\database_service.dart:40:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\email_otp_service.dart:34:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\email_otp_service.dart:37:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\email_otp_service.dart:38:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\email_otp_service.dart:44:7 - avoid_print
+  error - The name 'MyApp' isn't a class - test\widget_test.dart:16:35 - creation_with_non_type
+
