@@ -9,5 +9,6 @@ cd flare_dating_app || exit 1
 echo "Fetching dependencies..."
 flutter pub get
 
-echo "Building web app for production..."
-flutter build web --release
+echo "Building web app for production (Forced HTML Renderer)..."
+# Using --web-renderer html helps load large assets/images more reliably on web
+flutter build web --release --web-renderer html
