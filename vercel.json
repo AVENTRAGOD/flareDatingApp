@@ -1,6 +1,6 @@
 {
   "buildCommand": "bash build.sh",
-  "outputDirectory": "build/web",
+  "outputDirectory": "flare_dating_app/build/web",
   "framework": null,
   "rewrites": [
     {
