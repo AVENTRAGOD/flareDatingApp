@@ -1,180 +1,153 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:convert';
+import 'dart:async';
 
 class DatabaseService {
   static final DatabaseService instance = DatabaseService._init();
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  
+  // Local fallback cache for development/offline scenarios
+  final Map<String, Map<String, dynamic>> _localUserCache = {};
+  final List<Map<String, dynamic>> _interactions = [];
+  final List<Map<String, dynamic>> _chats = [];
+  final List<Map<String, dynamic>> _messages = [];
+  
+  // Streams controllers
+  final StreamController<List<Map<String, dynamic>>> _chatStreamController = StreamController.broadcast();
+  final StreamController<List<Map<String, dynamic>>> _messagesStreamController = StreamController.broadcast();
 
   DatabaseService._init();
 
-  /// Inserts a new user document into the 'users' collection using their email as the Document ID.
+  /// Inserts a new user document
   Future<void> insertUser(Map<String, dynamic> userDetails) async {
-    try {
-      final email = userDetails['email'] as String;
-      // Merge adds or updates without overwriting existing unrelated fields
-      await _firestore.collection('users').doc(email).set(
-        userDetails,
-        SetOptions(merge: true),
-      );
-    } catch (e) {
-      print('Error inserting user to Firestore: $e');
-      rethrow;
+    final email = userDetails['email'] as String;
+    if (_localUserCache.containsKey(email)) {
+      _localUserCache[email]!.addAll(userDetails);
+    } else {
+      _localUserCache[email] = Map<String, dynamic>.from(userDetails);
     }
   }
 
-  /// Updates an existing user's profile with additional details
+  /// Updates an existing user's profile
   Future<void> updateUserProfile(String email, Map<String, dynamic> profileData) async {
-    try {
-      await _firestore.collection('users').doc(email).update(profileData);
-    } catch (e) {
-      print('Error updating user profile in Firestore: $e');
-      rethrow;
+    if (_localUserCache.containsKey(email)) {
+      _localUserCache[email]!.addAll(profileData);
+    } else {
+      _localUserCache[email] = Map<String, dynamic>.from(profileData);
     }
   }
 
-  /// Retrieves all users from the database 
+  /// Retrieves all users
   Future<List<Map<String, dynamic>>> getAllUsers() async {
-    try {
-      final snapshot = await _firestore.collection('users').get();
-      return snapshot.docs.map((doc) => doc.data()).toList();
-    } catch (e) {
-      print('Error getting users from Firestore: $e');
-      return [];
-    }
+    return _localUserCache.values.toList();
   }
 
-  /// Retrieves a specific user by their email
+  /// Retrieves a specific user
   Future<Map<String, dynamic>?> getUserProfile(String email) async {
-    try {
-      final doc = await _firestore.collection('users').doc(email).get();
-      if (doc.exists) return doc.data();
-      return null;
-    } catch (e) {
-      print('Error getting user profile: $e');
-      return null;
-    }
+    return _localUserCache[email];
   }
 
-  /// Deletes a user account from the database
+  /// Calculates real-time stats
+  Future<Map<String, int>> getUserStats(String email) async {
+    int likesSent = _interactions.where((i) => i['from'] == email && i['isLike'] == true).length;
+    int passesSent = _interactions.where((i) => i['from'] == email && i['isLike'] == false).length;
+    int messagesSent = _messages.where((m) => m['senderId'] == email).length;
+    final userDoc = await getUserProfile(email);
+    int snakeScore = userDoc?['snake_high_score'] ?? 0;
+
+    return {
+      'likes_sent': likesSent,
+      'passes_sent': passesSent,
+      'messages_sent': messagesSent,
+      'snake_score': snakeScore,
+    };
+  }
+
+  /// Deletes a user account
   Future<void> deleteUser(String email) async {
-    try {
-      await _firestore.collection('users').doc(email).delete();
-    } catch (e) {
-      print('Error deleting user profile: $e');
-      rethrow;
+    _localUserCache.remove(email);
+  }
+
+  /// Updates snake score
+  Future<void> updateSnakeHighScore(String email, int newScore) async {
+    final userProfile = await getUserProfile(email);
+    final int currentHigh = userProfile?['snake_high_score'] ?? 0;
+    if (newScore > currentHigh) {
+      if (_localUserCache.containsKey(email)) {
+        _localUserCache[email]!['snake_high_score'] = newScore;
+      }
     }
   }
 
-  /// Uploads a profile picture to Firebase Storage and returns the public download URL.
+  /// Gets leaderboard
+  Future<List<Map<String, dynamic>>> getSnakeLeaderboard() async {
+    final List<Map<String, dynamic>> allUsers = _localUserCache.values.toList();
+    allUsers.sort((a, b) {
+      int scoreA = a['snake_high_score'] ?? 0;
+      int scoreB = b['snake_high_score'] ?? 0;
+      return scoreB.compareTo(scoreA); // Descending
+    });
+    return allUsers.take(10).toList();
+  }
+
   Future<String?> uploadProfilePicture(String email, {File? file, Uint8List? bytes}) async {
     try {
-      final ref = _storage.ref().child('profile_pictures').child('$email.jpg');
-      
-      if (bytes != null) {
-        await ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
-      } else if (file != null) {
-        await ref.putFile(file, SettableMetadata(contentType: 'image/jpeg'));
-      } else {
-        return null;
+      Uint8List? imageBytes = bytes;
+      if (imageBytes == null && file != null) {
+        imageBytes = await file.readAsBytes();
       }
+      if (imageBytes == null) return null;
       
-      return await ref.getDownloadURL();
+      final base64String = base64Encode(imageBytes);
+      final dataUrl = 'data:image/jpeg;base64,$base64String';
+      
+      if (_localUserCache.containsKey(email)) {
+        _localUserCache[email]!['avatar_path'] = dataUrl;
+      }
+      return dataUrl;
     } catch (e) {
-      print('Error uploading profile picture: $e');
       return null;
     }
   }
 
-  /// Records a swipe interaction (like or dislike)
   Future<void> recordInteraction(String myEmail, String targetEmail, bool isLike) async {
-    try {
-      final interactionId = '${myEmail}_$targetEmail';
-      await _firestore.collection('interactions').doc(interactionId).set({
-        'from': myEmail,
-        'to': targetEmail,
-        'isLike': isLike,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-    } catch (e) {
-      print('Error recording interaction: $e');
-    }
+    // remove existing interaction if it exists
+    _interactions.removeWhere((i) => i['from'] == myEmail && i['to'] == targetEmail);
+    _interactions.add({
+      'from': myEmail,
+      'to': targetEmail,
+      'isLike': isLike,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
   }
 
-  /// Removes a like interaction (for the "X" button on matches page)
+  Future<bool> checkMutualMatch(String myEmail, String targetEmail) async {
+    return _interactions.any((i) => i['from'] == targetEmail && i['to'] == myEmail && i['isLike'] == true);
+  }
+
   Future<void> removeInteraction(String myEmail, String targetEmail) async {
-    try {
-      final interactionId = '${myEmail}_$targetEmail';
-      await _firestore.collection('interactions').doc(interactionId).delete();
-    } catch (e) {
-      print('Error removing interaction: $e');
-    }
+    _interactions.removeWhere((i) => i['from'] == myEmail && i['to'] == targetEmail);
   }
 
-  /// Gets a list of emails that the current user has already swiped on (to prevent showing them again)
   Future<List<String>> getSwipedUsers(String myEmail) async {
-    try {
-      final snapshot = await _firestore
-          .collection('interactions')
-          .where('from', isEqualTo: myEmail)
-          .get();
-      return snapshot.docs.map((doc) => doc.data()['to'] as String).toList();
-    } catch (e) {
-      print('Error getting swiped users: $e');
-      return [];
-    }
+    return _interactions.where((i) => i['from'] == myEmail).map((i) => i['to'] as String).toList();
   }
 
-  /// Fetches a list of emails of users who swiped right on the currentUser
   Future<List<String>> getUsersWhoLikedMe(String currentUserEmail) async {
-    try {
-      final snapshot = await _firestore
-          .collection('interactions')
-          .where('to', isEqualTo: currentUserEmail)
-          .where('isLike', isEqualTo: true)
-          .get();
-          
-      return snapshot.docs.map((doc) => doc['from'] as String).toList();
-    } catch (e) {
-      print('Error getting users who liked me: $e');
-      return [];
-    }
+    return _interactions.where((i) => i['to'] == currentUserEmail && i['isLike'] == true).map((i) => i['from'] as String).toList();
   }
 
-  /// Gets the full profiles of users that the current user swiped right on
   Future<List<Map<String, dynamic>>> getLikedUsers(String myEmail) async {
-    try {
-      final snapshot = await _firestore
-          .collection('interactions')
-          .where('from', isEqualTo: myEmail)
-          .where('isLike', isEqualTo: true)
-          .get();
-          
-      List<String> likedEmails = snapshot.docs.map((doc) => doc.data()['to'] as String).toList();
-      
-      if (likedEmails.isEmpty) return [];
-
-      List<Map<String, dynamic>> likedProfiles = [];
-      for (String email in likedEmails) {
-        final userDoc = await _firestore.collection('users').doc(email).get();
-        if (userDoc.exists) {
-          likedProfiles.add(userDoc.data()!);
-        }
+    List<String> likedEmails = _interactions.where((i) => i['from'] == myEmail && i['isLike'] == true).map((i) => i['to'] as String).toList();
+    List<Map<String, dynamic>> likedProfiles = [];
+    for (String email in likedEmails) {
+      if (_localUserCache.containsKey(email)) {
+        likedProfiles.add(_localUserCache[email]!);
       }
-      return likedProfiles;
-    } catch (e) {
-      print('Error getting liked users: $e');
-      return [];
     }
+    return likedProfiles;
   }
 
-  // ==========================================
-  // CHAT & MESSAGING SYSTEM
-  // ==========================================
-
-  /// Generate a unique, consistent chat ID between two users
   String getChatId(String user1, String user2) {
     if (user1.compareTo(user2) > 0) {
       return '${user1}_$user2';
@@ -183,91 +156,92 @@ class DatabaseService {
     }
   }
 
-  /// Send a message (Text or Image) to a specific Chat ID
   Future<void> sendMessage(String senderEmail, String receiverEmail, String text, {String? imageUrl}) async {
-    try {
-      final chatId = getChatId(senderEmail, receiverEmail);
-      
-      // 1. Update the parent chat document with the latest info
-      await _firestore.collection('chats').doc(chatId).set({
-        'participants': [senderEmail, receiverEmail],
-        'lastMessage': imageUrl != null ? '📷 Image' : text,
-        'lastMessageTime': FieldValue.serverTimestamp(),
-        // Setting up simple unread counter (can expand later)
-        'lastSender': senderEmail,
-      }, SetOptions(merge: true));
+    final chatId = getChatId(senderEmail, receiverEmail);
+    final existingChatIndex = _chats.indexWhere((c) => c['id'] == chatId);
+    
+    final chatData = {
+      'id': chatId,
+      'participants': [senderEmail, receiverEmail],
+      'lastMessage': imageUrl != null ? '📷 Image' : text,
+      'lastMessageTime': DateTime.now().toIso8601String(),
+      'lastSender': senderEmail,
+    };
 
-      // 2. Add the individual message to the messages subcollection
-      await _firestore.collection('chats').doc(chatId).collection('messages').add({
-        'senderId': senderEmail,
-        'receiverId': receiverEmail,
-        'text': text,
-        'imageUrl': imageUrl,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-    } catch (e) {
-      print('Error sending message: $e');
+    if (existingChatIndex >= 0) {
+      _chats[existingChatIndex] = chatData;
+    } else {
+      _chats.add(chatData);
     }
+
+    _messages.add({
+      'chatId': chatId,
+      'senderId': senderEmail,
+      'receiverId': receiverEmail,
+      'text': text,
+      'imageUrl': imageUrl,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+
+    _notifyChatsUpdated();
+    _notifyMessagesUpdated();
   }
 
-  /// Get a real-time stream of all conversations a user is involved in
-  Stream<QuerySnapshot> getUserChatsStream(String email) {
-    return _firestore
-        .collection('chats')
-        .where('participants', arrayContains: email)
-        .orderBy('lastMessageTime', descending: true)
-        .snapshots();
+  void _notifyChatsUpdated() {
+    _chatStreamController.add(_chats);
   }
 
-  /// Get a real-time stream of messages inside a specific Chat Room
-  Stream<QuerySnapshot> getChatStream(String chatId) {
-    return _firestore
-        .collection('chats')
-        .doc(chatId)
-        .collection('messages')
-        .orderBy('timestamp', descending: true)
-        .snapshots();
+  void _notifyMessagesUpdated() {
+    _messagesStreamController.add(_messages);
   }
 
-  // ==========================================
-  // DUMMY SEEDER
-  // ==========================================
+  Stream<List<Map<String, dynamic>>> getUserChatsStream(String email) {
+    // Send immediate initial data then listen
+    Future.microtask(() => _notifyChatsUpdated());
+    return _chatStreamController.stream.map((chats) => 
+      chats.where((c) => (c['participants'] as List).contains(email)).toList()
+        ..sort((a, b) => (b['lastMessageTime'] as String).compareTo(a['lastMessageTime'] as String))
+    );
+  }
+
+  Stream<List<Map<String, dynamic>>> getChatStream(String chatId) {
+    // Send immediate initial data then listen
+    Future.microtask(() => _notifyMessagesUpdated());
+    return _messagesStreamController.stream.map((msgs) => 
+      msgs.where((m) => m['chatId'] == chatId).toList()
+        ..sort((a, b) => (b['timestamp'] as String).compareTo(a['timestamp'] as String)) // Descending
+    );
+  }
   
-  /// Injects 10 fake users into the database for testing Matchmaking algorithms
   Future<void> seedDummyUsers() async {
-    try {
-      final checkDoc = await _firestore.collection('users').doc('tester1@example.com').get();
-      if (checkDoc.exists) return; // Already seeded
+    if (_localUserCache.containsKey('tester1@example.com')) return; 
 
-      final List<String> availableInterests = ['Music', 'Art', 'Sports', 'Cooking', 'Travel', 'Photography', 'Gaming', 'Fitness'];
-      final List<String> genders = ['Male', 'Female'];
-      
-      // Some safe Unsplash images
-      final List<String> photos = [
-        'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&q=80&w=600',
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=600',
-        'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=600',
-        'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=600',
-        'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&q=80&w=600',
-        'https://images.unsplash.com/photo-1488161628813-04466f872507?auto=format&fit=crop&q=80&w=600',
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600',
-        'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=600',
-        'https://images.unsplash.com/photo-1513956589380-bad6acb9b9d4?auto=format&fit=crop&q=80&w=600',
-        'https://images.unsplash.com/photo-1520813792240-56fc4a3765a7?auto=format&fit=crop&q=80&w=600',
-      ];
+    final List<String> availableInterests = ['Music', 'Art', 'Sports', 'Cooking', 'Travel', 'Photography', 'Gaming', 'Fitness'];
+    final List<String> genders = ['Male', 'Female'];
+    
+    final List<String> photos = [
+      'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&q=80&w=600',
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=600',
+      'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=600',
+      'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=600',
+      'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&q=80&w=600',
+      'https://images.unsplash.com/photo-1488161628813-04466f872507?auto=format&fit=crop&q=80&w=600',
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600',
+      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=600',
+      'https://images.unsplash.com/photo-1513956589380-bad6acb9b9d4?auto=format&fit=crop&q=80&w=600',
+      'https://images.unsplash.com/photo-1520813792240-56fc4a3765a7?auto=format&fit=crop&q=80&w=600',
+    ];
 
-      for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++) {
         final email = 'tester${i + 1}@example.com';
         
-        // Randomly pick 3-4 interests
         availableInterests.shuffle();
         final selectedInterests = availableInterests.take(4).toList();
         
-        // Generate a random valid DOB (approx 20-30 years old)
         final age = 20 + (i % 10);
         final dob = DateTime.now().subtract(Duration(days: age * 365));
 
-        await _firestore.collection('users').doc(email).set({
+        _localUserCache[email] = {
           'email': email,
           'first_name': 'Tester',
           'last_name': '${i + 1}',
@@ -275,11 +249,7 @@ class DatabaseService {
           'dob': dob.toIso8601String(),
           'avatar_path': photos[i],
           'interests': selectedInterests,
-        });
+        };
       }
-      print('✅ 10 Dummy Tester Profiles successfully seeded to Firestore!');
-    } catch (e) {
-      print('Error seeding dummy users: $e');
-    }
   }
 }

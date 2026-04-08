@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -27,14 +29,24 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
   final List<String> _genders = ['Male', 'Female', 'Other'];
 
   File? _avatarImage;
+  Uint8List? _avatarBytes;
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _pickImage() async {
-    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
     if (pickedFile != null) {
-      setState(() {
-        _avatarImage = File(pickedFile.path);
-      });
+      if (kIsWeb) {
+        final bytes = await pickedFile.readAsBytes();
+        setState(() {
+          _avatarBytes = bytes;
+          _avatarImage = null; // Do not use File path on Web
+        });
+      } else {
+        setState(() {
+          _avatarImage = File(pickedFile.path);
+          _avatarBytes = null;
+        });
+      }
     }
   }
 
@@ -90,13 +102,19 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
 
       String avatarUrl = '';
       try {
-        if (_avatarImage != null) {
-          final url = await DatabaseService.instance.uploadProfilePicture(
-            widget.email,
-            file: _avatarImage,
-          ).timeout(const Duration(seconds: 5));
-          if (url != null) {
-            avatarUrl = url;
+        if (_avatarImage != null || _avatarBytes != null) {
+          try {
+            final url = await DatabaseService.instance.uploadProfilePicture(
+              widget.email,
+              file: _avatarImage,
+              bytes: _avatarBytes,
+            ).timeout(const Duration(seconds: 15)); // Reduced slightly to not block UI forever
+            
+            if (url != null) {
+              avatarUrl = url;
+            }
+          } catch (err) {
+            debugPrint('Image upload bypassed: $err');
           }
         }
 
@@ -108,7 +126,8 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
           'avatar_path': avatarUrl,
         };
 
-        await DatabaseService.instance.updateUserProfile(widget.email, profileData).timeout(const Duration(seconds: 5));
+        await DatabaseService.instance.updateUserProfile(widget.email, profileData)
+            .timeout(const Duration(seconds: 10));
 
         if (mounted) {
           Navigator.pop(context); // Close loading dialog
@@ -125,10 +144,14 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
         if (mounted) {
           Navigator.pop(context); // Close loading dialog
           
+          // Determine root cause
+          final bool isTimeout = e.toString().contains('Timeout');
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Firebase error (dummy keys). Bypassing for preview...'),
-              duration: Duration(seconds: 3),
+            SnackBar(
+              content: Text(isTimeout 
+                ? 'Network timeout! Skipping profile details for now...'
+                : 'Firebase error! Bypassing for preview...'),
+              duration: const Duration(seconds: 3),
             ),
           );
           
@@ -261,8 +284,10 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                           CircleAvatar(
                             radius: 60,
                             backgroundColor: Colors.white,
-                            backgroundImage: _avatarImage != null ? FileImage(_avatarImage!) : null,
-                            child: _avatarImage == null 
+                            backgroundImage: _avatarBytes != null 
+                                ? MemoryImage(_avatarBytes!) 
+                                : (_avatarImage != null ? FileImage(_avatarImage!) : null) as ImageProvider?,
+                            child: (_avatarImage == null && _avatarBytes == null)
                               ? const Icon(Icons.person, size: 60, color: Color(0xFFD3C5D6))
                               : null,
                           ),

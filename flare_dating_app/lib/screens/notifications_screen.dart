@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -94,8 +95,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               CircleAvatar(
                                 radius: 28,
                                 backgroundColor: const Color(0xFF322369),
-                                backgroundImage: avatarPath.isNotEmpty ? NetworkImage(avatarPath) : null,
-                                child: avatarPath.isEmpty ? const Icon(Icons.person, color: Colors.white) : null,
+                                backgroundImage: _resolveAvatar(avatarPath),
+                                child: _resolveAvatar(avatarPath) == null ? const Icon(Icons.person, color: Colors.white) : null,
                               ),
                               Positioned(
                                 bottom: 0,
@@ -149,5 +150,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   ),
       ),
     );
+  }
+  ImageProvider? _resolveAvatar(String path) {
+    if (path.isEmpty) return null;
+    if (path.startsWith('data:image')) {
+      try { return MemoryImage(base64Decode(path.split(',').last)); } catch (_) { return null; }
+    }
+    return NetworkImage(path);
   }
 }

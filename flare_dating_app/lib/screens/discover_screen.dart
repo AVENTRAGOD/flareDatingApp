@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
@@ -5,6 +6,7 @@ import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'search_users_screen.dart';
 import 'notifications_screen.dart';
 import 'chat_room_screen.dart';
+import 'match_screen.dart';
 import '../services/database_service.dart';
 
 class DiscoverScreen extends StatefulWidget {
@@ -24,6 +26,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
 
   List<Map<String, dynamic>> allValidUsers = []; // Cache of users before search filtering
   List<String> myInterests = [];
+  String myAvatar = '';
 
   @override
   void initState() {
@@ -33,13 +36,19 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
 
   Future<void> _loadUsers() async {
     try {
-      final myProfile = await DatabaseService.instance.getUserProfile(widget.currentUserEmail);
-      if (myProfile != null && myProfile['interests'] != null) {
-        myInterests = List<String>.from(myProfile['interests']);
+      final myProfile = await DatabaseService.instance.getUserProfile(widget.currentUserEmail)
+          .timeout(const Duration(seconds: 5));
+      if (myProfile != null) {
+        if (myProfile['interests'] != null) {
+          myInterests = List<String>.from(myProfile['interests']);
+        }
+        myAvatar = myProfile['avatar_path']?.toString() ?? '';
       }
 
-      final fetchedUsers = await DatabaseService.instance.getAllUsers();
-      final swipedUsers = await DatabaseService.instance.getSwipedUsers(widget.currentUserEmail);
+      final fetchedUsers = await DatabaseService.instance.getAllUsers()
+          .timeout(const Duration(seconds: 5));
+      final swipedUsers = await DatabaseService.instance.getSwipedUsers(widget.currentUserEmail)
+          .timeout(const Duration(seconds: 5));
       
       setState(() {
         allValidUsers = fetchedUsers.where((user) {
@@ -253,15 +262,13 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   Container(
                     height: MediaQuery.of(context).size.height * 0.45,
                     color: Colors.grey[300],
-                    child: avatarPath.isNotEmpty
-                        ? Image.network(avatarPath, fit: BoxFit.cover)
-                        : Center(
-                            child: Icon(
-                              Icons.person,
-                              size: 100,
-                              color: Colors.grey[500],
-                            ),
-                          ),
+                    child: Builder(builder: (context) {
+                      final imgProvider = _getAvatarImage(avatarPath);
+                      if (imgProvider != null) {
+                        return Image(image: imgProvider, fit: BoxFit.cover);
+                      }
+                      return Center(child: Icon(Icons.person, size: 100, color: Colors.grey[500]));
+                    }),
                   ),
                   
                   // Details Section
@@ -379,6 +386,20 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     );
   }
 
+  /// Returns the correct ImageProvider for any avatar (base64 or network URL)
+  ImageProvider? _getAvatarImage(String avatarPath) {
+    if (avatarPath.isEmpty) return null;
+    if (avatarPath.startsWith('data:image')) {
+      try {
+        final base64Str = avatarPath.split(',').last;
+        return MemoryImage(base64Decode(base64Str));
+      } catch (_) {
+        return null;
+      }
+    }
+    return NetworkImage(avatarPath);
+  }
+
   Widget _buildCard(Map<String, dynamic> user) {
     final firstName = user['first_name']?.toString() ?? 'Unknown';
     final lastName = user['last_name']?.toString() ?? '';
@@ -404,27 +425,24 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // User Image
-              if (avatarPath.isNotEmpty)
-                Image.network(
-                  avatarPath,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
+              // User Image (supports base64 and network URLs)
+              Builder(builder: (context) {
+                final imgProvider = _getAvatarImage(avatarPath);
+                if (imgProvider != null) {
+                  return Image(
+                    image: imgProvider,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
                       color: Colors.grey[300],
-                      child: Center(
-                        child: Icon(Icons.person, size: 80, color: Colors.grey[600]),
-                      ),
-                    );
-                  },
-                )
-              else
-                Container(
-                  color: Colors.grey[300],
-                  child: Center(
-                    child: Icon(Icons.person, size: 80, color: Colors.grey[600]),
-                  ),
-                ),
+                      child: Center(child: Icon(Icons.person, size: 80, color: Colors.grey[600])),
+                    ),
+                  );
+                }
+                return Container(
+                  color: const Color(0xFF6C3FC7),
+                  child: Center(child: Icon(Icons.person, size: 80, color: Colors.white.withOpacity(0.5))),
+                );
+              }),
               
               // Gradient overlay for text readability
               Container(
@@ -452,12 +470,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        // Avatar placeholder
+                        // Avatar circle (bottom-left of card)
                         CircleAvatar(
                           radius: 30,
                           backgroundColor: const Color(0xFF8B51E5),
-                          backgroundImage: avatarPath.isNotEmpty ? NetworkImage(avatarPath) : null,
-                          child: avatarPath.isEmpty
+                          backgroundImage: _getAvatarImage(avatarPath),
+                          child: _getAvatarImage(avatarPath) == null
                             ? Text(
                                 fullName.isNotEmpty ? fullName[0].toUpperCase() : '?',
                                 style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
@@ -572,17 +590,40 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   ) {
     if (previousIndex < 0 || previousIndex >= users.length) return true;
     final targetUserEmail = users[previousIndex]['email']?.toString() ?? '';
+    final targetUserName = users[previousIndex]['first_name']?.toString() ?? 'User';
+    final targetUserAvatar = users[previousIndex]['avatar_path']?.toString() ?? '';
     
     if (targetUserEmail.isNotEmpty) {
       if (direction == CardSwiperDirection.right) {
         DatabaseService.instance.recordInteraction(widget.currentUserEmail, targetUserEmail, true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Liked! (Mutual match logic coming soon)'),
-            duration: Duration(milliseconds: 1500),
-            backgroundColor: Colors.green,
-          ),
-        );
+        
+        // Asynchronously check for match and show celebration
+        DatabaseService.instance.checkMutualMatch(widget.currentUserEmail, targetUserEmail).then((isMutual) {
+          if (isMutual && mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MatchScreen(
+                  currentUserEmail: widget.currentUserEmail,
+                  targetUserEmail: targetUserEmail,
+                  targetUserName: targetUserName,
+                  targetUserAvatar: targetUserAvatar,
+                  currentUserAvatar: myAvatar,
+                ),
+              ),
+            );
+          } else if (mounted) {
+            // Unmatched like
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Liked!'),
+                duration: Duration(milliseconds: 1000),
+                backgroundColor: Color(0xFFC76CD9),
+              ),
+            );
+          }
+        });
+        
       } else if (direction == CardSwiperDirection.left) {
         DatabaseService.instance.recordInteraction(widget.currentUserEmail, targetUserEmail, false);
       }

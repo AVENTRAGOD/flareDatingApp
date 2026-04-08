@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/database_service.dart';
 import 'chat_room_screen.dart';
+import 'be_patient_screen.dart';
 
 class MatchesScreen extends StatefulWidget {
   final String currentUserEmail;
@@ -168,15 +170,15 @@ class _MatchesScreenState extends State<MatchesScreen> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Image
-            if (avatarPath.isNotEmpty)
-              Image.network(
-                avatarPath,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => _fallbackImage(),
-              )
-            else
-              _fallbackImage(),
+            // Image (base64 or network)
+            Builder(builder: (context) {
+              final img = _resolveAvatar(avatarPath);
+              if (img != null) {
+                return Image(image: img, fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => _fallbackImage());
+              }
+              return _fallbackImage();
+            }),
               
             // Bottom Gradient 
             Container(
@@ -242,18 +244,47 @@ class _MatchesScreenState extends State<MatchesScreen> {
                       // Chat / Accept (Heart)
                       Expanded(
                         child: InkWell(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ChatRoomScreen(
-                                  currentUserEmail: widget.currentUserEmail,
-                                  targetUserEmail: email,
-                                  targetUserName: firstName,
-                                  targetUserAvatar: avatarPath,
-                                ),
+                          onTap: () async {
+                            // Quick loading indicator
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (context) => const Center(
+                                child: CircularProgressIndicator(color: Color(0xFFF14C86)),
                               ),
                             );
+                            
+                            // Verify mutual interaction
+                            final isMutual = await DatabaseService.instance.checkMutualMatch(
+                              widget.currentUserEmail,
+                              email,
+                            );
+                            
+                            if (context.mounted) {
+                              Navigator.pop(context); // Close loading dialog
+                              if (isMutual) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ChatRoomScreen(
+                                      currentUserEmail: widget.currentUserEmail,
+                                      targetUserEmail: email,
+                                      targetUserName: firstName,
+                                      targetUserAvatar: avatarPath,
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => BePatientScreen(
+                                      targetUserAvatar: avatarPath,
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
                           },
                           child: const Icon(
                             Icons.favorite,
@@ -284,5 +315,13 @@ class _MatchesScreenState extends State<MatchesScreen> {
         ),
       ),
     );
+  }
+
+  ImageProvider? _resolveAvatar(String path) {
+    if (path.isEmpty) return null;
+    if (path.startsWith('data:image')) {
+      try { return MemoryImage(base64Decode(path.split(',').last)); } catch (_) { return null; }
+    }
+    return NetworkImage(path);
   }
 }

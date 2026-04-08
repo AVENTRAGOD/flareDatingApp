@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -5,6 +6,7 @@ import '../services/database_service.dart';
 import 'welcome_screen.dart';
 import 'user_guide_screen.dart';
 import 'achievements_screen.dart';
+import 'games_screen.dart';
 
 class UserProfileTab extends StatefulWidget {
   final String currentUserEmail;
@@ -137,6 +139,18 @@ class _UserProfileTabState extends State<UserProfileTab> {
     final lastName = _userProfile?['last_name']?.toString() ?? '';
     final fullName = '$firstName $lastName'.trim();
     final avatarPath = _userProfile?['avatar_path']?.toString() ?? '';
+    
+    // Support both base64 data URLs and regular http URLs
+    ImageProvider? avatarImage;
+    if (avatarPath.startsWith('data:image')) {
+      try {
+        final base64Str = avatarPath.split(',').last;
+        final bytes = base64Decode(base64Str);
+        avatarImage = MemoryImage(bytes);
+      } catch (_) {}
+    } else if (avatarPath.isNotEmpty) {
+      avatarImage = NetworkImage(avatarPath);
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6EEF6), // Extremely light pink/purple custom BG
@@ -168,15 +182,15 @@ class _UserProfileTabState extends State<UserProfileTab> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.black87, width: 2),
-                          image: avatarPath.isNotEmpty
+                          image: avatarImage != null
                               ? DecorationImage(
-                                  image: NetworkImage(avatarPath),
+                                  image: avatarImage,
                                   fit: BoxFit.cover,
                                 )
                               : null,
                           color: const Color(0xFF322369),
                         ),
-                        child: avatarPath.isEmpty ? const Icon(Icons.person, color: Colors.white, size: 30) : null,
+                        child: avatarImage == null ? const Icon(Icons.person, color: Colors.white, size: 30) : null,
                       ),
                       const SizedBox(width: 16),
                       // Name
@@ -266,7 +280,10 @@ class _UserProfileTabState extends State<UserProfileTab> {
                   }),
                   _buildSettingOption(Icons.article, 'Terms & Conditions', onTap: () => _showComingSoon('Terms & Conditions')),
                   _buildSettingOption(Icons.shield, 'Achievements', onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const AchievementsScreen()));
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => AchievementsScreen(currentUserEmail: widget.currentUserEmail)));
+                  }),
+                  _buildSettingOption(Icons.videogame_asset, 'Games', onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => GamesScreen(currentUserEmail: widget.currentUserEmail)));
                   }),
                   _buildSettingOption(Icons.delete, 'Delete Account', onTap: _confirmDelete),
                   

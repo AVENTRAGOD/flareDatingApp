@@ -1,6 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/database_service.dart';
 import 'chat_room_screen.dart';
 
@@ -37,14 +37,14 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
             
             // Chat List
             Expanded(
-              child: StreamBuilder<QuerySnapshot>(
+              child: StreamBuilder<List<Map<String, dynamic>>>(
                 stream: DatabaseService.instance.getUserChatsStream(widget.currentUserEmail),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
                   
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
                     return Center(
                       child: Text(
                         'No messages yet. Say hi to a match!',
@@ -56,14 +56,14 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                     );
                   }
 
-                  final chatDocs = snapshot.data!.docs;
+                  final chatDocs = snapshot.data!;
 
                   return ListView.separated(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     itemCount: chatDocs.length,
                     separatorBuilder: (context, index) => const SizedBox(height: 16),
                     itemBuilder: (context, index) {
-                      final chatData = chatDocs[index].data() as Map<String, dynamic>;
+                      final chatData = chatDocs[index];
                       final participants = List<String>.from(chatData['participants'] ?? []);
                       
                       // Find the other person's email
@@ -73,14 +73,15 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                       );
 
                       final lastMessage = chatData['lastMessage'] as String? ?? '';
-                      final lastMessageTime = chatData['lastMessageTime'] as Timestamp?;
+                      final timeStr = chatData['lastMessageTime'] as String?;
+                      final lastMessageTime = timeStr != null ? DateTime.tryParse(timeStr) : null;
                       
                       return _buildChatCardTile(
                         context: context,
                         targetEmail: targetEmail,
                         lastMessage: lastMessage,
                         lastMessageTime: lastMessageTime,
-                        chatId: chatDocs[index].id,
+                        chatId: chatDocs[index]['id'] as String,
                       );
                     },
                   );
@@ -97,13 +98,13 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
     required BuildContext context,
     required String targetEmail,
     required String lastMessage,
-    required Timestamp? lastMessageTime,
+    required DateTime? lastMessageTime,
     required String chatId,
   }) {
     // Format time roughly
     String timeString = '';
     if (lastMessageTime != null) {
-      final dt = lastMessageTime.toDate();
+      final dt = lastMessageTime;
       final now = DateTime.now();
       if (dt.year == now.year && dt.month == now.month && dt.day == now.day) {
         // Today: display hours
@@ -118,14 +119,14 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
       }
     }
 
-    return FutureBuilder<DocumentSnapshot>(
-      future: FirebaseFirestore.instance.collection('users').doc(targetEmail).get(),
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: DatabaseService.instance.getUserProfile(targetEmail),
       builder: (context, userSnapshot) {
         String name = 'Loading...';
         String avatarPath = '';
         
-        if (userSnapshot.hasData && userSnapshot.data != null && userSnapshot.data!.exists) {
-          final userData = userSnapshot.data!.data() as Map<String, dynamic>;
+        if (userSnapshot.hasData && userSnapshot.data != null) {
+          final userData = userSnapshot.data!;
           final first = userData['first_name']?.toString() ?? 'User';
           final last = userData['last_name']?.toString() ?? '';
           name = '$first $last'.trim();
@@ -167,16 +168,16 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: avatarPath.isEmpty ? const Color(0xFF322369) : Colors.grey[300],
+                    color: _resolveAvatar(avatarPath) == null ? const Color(0xFF322369) : Colors.grey[300],
                     borderRadius: BorderRadius.circular(16),
-                    image: avatarPath.isNotEmpty
+                    image: _resolveAvatar(avatarPath) != null
                         ? DecorationImage(
-                            image: NetworkImage(avatarPath),
+                            image: _resolveAvatar(avatarPath)!,
                             fit: BoxFit.cover,
                           )
                         : null,
                   ),
-                  child: avatarPath.isEmpty 
+                  child: _resolveAvatar(avatarPath) == null
                     ? const Icon(Icons.person, color: Colors.white, size: 30)
                     : null,
                 ),
@@ -254,5 +255,12 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
         );
       },
     );
+  }
+  ImageProvider? _resolveAvatar(String path) {
+    if (path.isEmpty) return null;
+    if (path.startsWith('data:image')) {
+      try { return MemoryImage(base64Decode(path.split(',').last)); } catch (_) { return null; }
+    }
+    return NetworkImage(path);
   }
 }

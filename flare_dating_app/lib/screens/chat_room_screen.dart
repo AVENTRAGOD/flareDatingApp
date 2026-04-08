@@ -1,9 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import '../services/database_service.dart';
 
 class ChatRoomScreen extends StatefulWidget {
@@ -50,26 +51,26 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   Future<void> _pickAndSendImage() async {
     try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 60);
       if (image == null) return;
 
-      // Unobtrusive loading snackbar
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Uploading image...'), duration: Duration(seconds: 1)),
+        const SnackBar(content: Text('Sending image...'), duration: Duration(seconds: 1)),
       );
 
-      final file = File(image.path);
-      final filename = '${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final ref = FirebaseStorage.instance.ref().child('chats').child(_chatId).child(filename);
-      
-      await ref.putFile(file, SettableMetadata(contentType: 'image/jpeg'));
-      final downloadUrl = await ref.getDownloadURL();
-
-      _sendMessage(imageUrl: downloadUrl);
+      // Encode image as base64 and embed inline — no Firebase Storage needed
+      Uint8List bytes;
+      if (kIsWeb) {
+        bytes = await image.readAsBytes();
+      } else {
+        bytes = await File(image.path).readAsBytes();
+      }
+      final base64String = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+      _sendMessage(imageUrl: base64String);
     } catch (e) {
-      debugPrint('Error uploading chat image: $e');
+      debugPrint('Error sending chat image: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to upload image')),
+        const SnackBar(content: Text('Failed to send image')),
       );
     }
   }
@@ -99,14 +100,14 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
           // Messages Stream
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
+            child: StreamBuilder<List<Map<String, dynamic>>>(
               stream: DatabaseService.instance.getChatStream(_chatId),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return Center(
                     child: Text(
                       'No messages yet. Start chatting!',
@@ -115,19 +116,20 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   );
                 }
 
-                final docs = snapshot.data!.docs;
+                final docs = snapshot.data!;
                 return ListView.builder(
                   reverse: true,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   itemCount: docs.length,
                   itemBuilder: (context, index) {
-                    final data = docs[index].data() as Map<String, dynamic>;
+                    final data = docs[index];
                     final isMe = data['senderId'] == widget.currentUserEmail;
                     final text = data['text'] as String? ?? '';
                     final imageUrl = data['imageUrl'] as String?;
-                    final timestamp = data['timestamp'] as Timestamp?;
+                    final timestampStr = data['timestamp'] as String?;
+                    final dt = timestampStr != null ? DateTime.tryParse(timestampStr) : null;
                     
-                    return _buildMessageBubble(isMe, text, imageUrl, timestamp);
+                    return _buildMessageBubble(isMe, text, imageUrl, dt);
                   },
                 );
               },
@@ -191,16 +193,16 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     padding: const EdgeInsets.all(4.0),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: widget.targetUserAvatar.isEmpty ? const Color(0xFF322369) : Colors.grey[300],
+                        color: _resolveAvatar(widget.targetUserAvatar) == null ? const Color(0xFF322369) : Colors.grey[300],
                         shape: BoxShape.circle,
-                        image: widget.targetUserAvatar.isNotEmpty
+                        image: _resolveAvatar(widget.targetUserAvatar) != null
                             ? DecorationImage(
-                                image: NetworkImage(widget.targetUserAvatar),
+                                image: _resolveAvatar(widget.targetUserAvatar)!,
                                 fit: BoxFit.cover,
                               )
                             : null,
                       ),
-                      child: widget.targetUserAvatar.isEmpty 
+                      child: _resolveAvatar(widget.targetUserAvatar) == null
                         ? const Icon(Icons.person, color: Colors.white, size: 40)
                         : null,
                     ),
@@ -255,10 +257,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     );
   }
 
-  Widget _buildMessageBubble(bool isMe, String text, String? imageUrl, Timestamp? timestamp) {
+  Widget _buildMessageBubble(bool isMe, String text, String? imageUrl, DateTime? dt) {
     String timeStr = '';
-    if (timestamp != null) {
-      final dt = timestamp.toDate();
+    if (dt != null) {
       final hour = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
       final ampm = dt.hour >= 12 ? 'PM' : 'AM';
       final min = dt.minute.toString().padLeft(2, '0');
@@ -322,10 +323,13 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    imageUrl,
-                    fit: BoxFit.cover,
-                  ),
+                  child: Builder(builder: (context) {
+                    final imgProvider = _resolveAvatar(imageUrl);
+                    if (imgProvider != null) {
+                      return Image(image: imgProvider, fit: BoxFit.cover);
+                    }
+                    return const SizedBox.shrink();
+                  }),
                 ),
               ),
 
@@ -412,5 +416,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         ],
       ),
     );
+  }
+  ImageProvider? _resolveAvatar(String path) {
+    if (path.isEmpty) return null;
+    if (path.startsWith('data:image')) {
+      try { return MemoryImage(base64Decode(path.split(',').last)); } catch (_) { return null; }
+    }
+    return NetworkImage(path);
   }
 }

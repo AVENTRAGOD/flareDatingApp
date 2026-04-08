@@ -43,9 +43,9 @@ class _EmailSignUpScreenState extends State<EmailSignUpScreen> {
 
       // Collect data to be saved LATER
       final user = {
-        'username': _usernameController.text,
-        'email': _emailController.text,
-        'mobile_number': _mobileController.text,
+        'username': _usernameController.text.trim(),
+        'email': _emailController.text.trim().toLowerCase(),
+        'mobile_number': _mobileController.text.trim(),
         'password': _passwordController.text,
       };
 
