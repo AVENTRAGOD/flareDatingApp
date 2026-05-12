@@ -8,6 +8,22 @@ class DatabaseService {
   static final DatabaseService instance = DatabaseService._init();
   final supabase = Supabase.instance.client;
 
+  // Single source of truth for interest names to ensure matching works perfectly
+  static const List<String> availableInterests = [
+    'Photography',
+    'Cooking',
+    'Video Games',
+    'Music',
+    'Travelling',
+    'Shopping',
+    'Speeches',
+    'Art & Crafts',
+    'Swimming',
+    'Drinking',
+    'Extreme Sports',
+    'Fitness',
+  ];
+
   DatabaseService._init();
 
   Future<void> insertUser(Map<String, dynamic> userDetails) async {
@@ -208,43 +224,55 @@ class DatabaseService {
   }
   
   Future<void> seedDummyUsers() async {
-    final existing = await getUserProfile('tester1@example.com');
-    if (existing != null) return; 
+    try {
+      final existing = await getUserProfile('tester1@example.com');
+      if (existing != null) {
+        print('Seed: Dummy users already exist. Skipping.');
+        return; 
+      }
 
-    final List<String> availableInterests = ['Music', 'Art', 'Sports', 'Cooking', 'Travel', 'Photography', 'Gaming', 'Fitness'];
-    final List<String> genders = ['Male', 'Female'];
-    
-    final List<String> photos = [
-      'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&q=80&w=600',
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=600',
-      'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=600',
-      'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=600',
-      'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&q=80&w=600',
-      'https://images.unsplash.com/photo-1488161628813-04466f872507?auto=format&fit=crop&q=80&w=600',
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600',
-      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=600',
-      'https://images.unsplash.com/photo-1513956589380-bad6acb9b9d4?auto=format&fit=crop&q=80&w=600',
-      'https://images.unsplash.com/photo-1520813792240-56fc4a3765a7?auto=format&fit=crop&q=80&w=600',
-    ];
+      final List<String> genders = ['Male', 'Female'];
+      final List<String> locations = ['New York, USA', 'London, UK', 'Tokyo, Japan', 'Paris, France', 'Berlin, Germany', 'Sydney, Australia'];
+      
+      final List<String> photos = [
+        'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&q=80&w=600',
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=600',
+        'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=600',
+        'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=600',
+        'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&q=80&w=600',
+        'https://images.unsplash.com/photo-1488161628813-04466f872507?auto=format&fit=crop&q=80&w=600',
+        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600',
+        'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=600',
+        'https://images.unsplash.com/photo-1513956589380-bad6acb9b9d4?auto=format&fit=crop&q=80&w=600',
+        'https://images.unsplash.com/photo-1520813792240-56fc4a3765a7?auto=format&fit=crop&q=80&w=600',
+      ];
 
-    for (int i = 0; i < 10; i++) {
+      final List<String> firstNames = ['Sarah', 'Emma', 'Jessica', 'David', 'Michael', 'Chloe', 'Daniel', 'Olivia', 'James', 'Mia'];
+
+      for (int i = 0; i < 10; i++) {
         final email = 'tester${i + 1}@example.com';
         
-        availableInterests.shuffle();
-        final selectedInterests = availableInterests.take(4).toList();
+        // Random interests from the unified set
+        final List<String> interestsPool = List.from(availableInterests)..shuffle();
+        final selectedInterests = interestsPool.take(4).toList();
         
-        final age = 20 + (i % 10);
-        final dob = DateTime.now().subtract(Duration(days: age * 365));
+        final age = 22 + (i % 8);
+        final dob = DateTime.now().subtract(Duration(days: age * 365 + (i * 10)));
 
         await supabase.from('users').upsert({
           'email': email,
-          'first_name': 'Tester',
-          'last_name': '${i + 1}',
+          'first_name': firstNames[i],
+          'last_name': 'Tester',
           'gender': genders[i % 2],
           'dob': dob.toIso8601String(),
           'avatar_path': photos[i],
           'interests': selectedInterests,
+          'location': locations[i % locations.length],
         });
       }
+      print('Seed: Successfully seeded 10 dummy users.');
+    } catch (e) {
+      print('Seed: Critical error during seeding: $e');
+    }
   }
 }

@@ -13,21 +13,24 @@ class LikesInterestsScreen extends StatefulWidget {
 }
 
 class _LikesInterestsScreenState extends State<LikesInterestsScreen> {
-  // Predefined list from the design
-  final List<Map<String, dynamic>> _interestsList = [
-    {'name': 'Photography', 'icon': Icons.camera_alt_outlined},
-    {'name': 'Cooking', 'icon': Icons.soup_kitchen_outlined},
-    {'name': 'Video Games', 'icon': Icons.sports_esports_outlined},
-    {'name': 'Music', 'icon': Icons.music_note_outlined},
-    {'name': 'Travelling', 'icon': Icons.landscape_outlined},
-    {'name': 'Shopping', 'icon': Icons.shopping_bag_outlined},
-    {'name': 'Speeches', 'icon': Icons.mic_none},
-    {'name': 'Art & Crafts', 'icon': Icons.palette_outlined},
-    {'name': 'Swimming', 'icon': Icons.waves},
-    {'name': 'Drinking', 'icon': Icons.local_drink_outlined},
-    {'name': 'Extreme Sports', 'icon': Icons.sports_kabaddi},
-    {'name': 'Fitness', 'icon': Icons.fitness_center},
-  ];
+  // Use the unified list from DatabaseService
+  final List<String> _interestsPool = DatabaseService.availableInterests;
+  
+  // Icon mapping for the unified interests
+  final Map<String, IconData> _interestIcons = {
+    'Photography': Icons.camera_alt_outlined,
+    'Cooking': Icons.soup_kitchen_outlined,
+    'Video Games': Icons.sports_esports_outlined,
+    'Music': Icons.music_note_outlined,
+    'Travelling': Icons.landscape_outlined,
+    'Shopping': Icons.shopping_bag_outlined,
+    'Speeches': Icons.mic_none,
+    'Art & Crafts': Icons.palette_outlined,
+    'Swimming': Icons.waves,
+    'Drinking': Icons.local_drink_outlined,
+    'Extreme Sports': Icons.sports_kabaddi,
+    'Fitness': Icons.fitness_center,
+  };
 
   final List<String> _selectedInterests = [];
   final int _maxSelection = 5;
@@ -60,10 +63,17 @@ class _LikesInterestsScreenState extends State<LikesInterestsScreen> {
     }
 
     try {
-      await DatabaseService.instance.updateUserProfile(widget.email, {'interests': _selectedInterests}).timeout(const Duration(seconds: 5));
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator(color: Color(0xFFC556B8))),
+      );
+
+      await DatabaseService.instance.updateUserProfile(widget.email, {'interests': _selectedInterests}).timeout(const Duration(seconds: 10));
 
       if (mounted) {
-        // Navigate to the Location Screen
+        Navigator.pop(context); // Close loading
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => LocationScreen(email: widget.email)),
@@ -71,15 +81,18 @@ class _LikesInterestsScreenState extends State<LikesInterestsScreen> {
       }
     } catch (e) {
       if (mounted) {
+        Navigator.pop(context); // Close loading
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Firebase error (dummy keys). Bypassing for preview...'),
-            duration: Duration(seconds: 3),
+          SnackBar(
+            content: const Text('Failed to save interests. Please check your connection.'),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: _saveAndContinue,
+            ),
           ),
-        );
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => LocationScreen(email: widget.email)),
         );
       }
     }
@@ -165,13 +178,14 @@ class _LikesInterestsScreenState extends State<LikesInterestsScreen> {
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 16,
                     ),
-                    itemCount: _interestsList.length,
+                    itemCount: _interestsPool.length,
                     itemBuilder: (context, index) {
-                      final interest = _interestsList[index];
-                      final isSelected = _selectedInterests.contains(interest['name']);
+                      final interestName = _interestsPool[index];
+                      final isSelected = _selectedInterests.contains(interestName);
+                      final icon = _interestIcons[interestName] ?? Icons.favorite_border;
                       
                       return GestureDetector(
-                        onTap: () => _toggleInterest(interest['name']),
+                        onTap: () => _toggleInterest(interestName),
                         child: Container(
                           decoration: BoxDecoration(
                             color: Colors.white,
@@ -197,14 +211,14 @@ class _LikesInterestsScreenState extends State<LikesInterestsScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(
-                                  interest['icon'],
+                                  icon,
                                   size: 18,
                                   color: isSelected ? const Color(0xFFF14C86) : const Color(0xFF8C7DA7),
                                 ),
                                 const SizedBox(width: 8),
                                 Flexible(
                                   child: Text(
-                                    interest['name'],
+                                    interestName,
                                     style: GoogleFonts.nunito(
                                       fontSize: 14,
                                       fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,

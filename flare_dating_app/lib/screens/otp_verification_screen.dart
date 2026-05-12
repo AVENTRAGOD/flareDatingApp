@@ -103,16 +103,21 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       } catch (e) {
         if (mounted) {
           Navigator.pop(context); // Close loading
-          // Beta preview bypass: If Firebase hangs/fails, proceed anyway
+          
+          final bool isTimeout = e.toString().contains('Timeout');
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Firebase error (using dummy keys). Bypassing for preview...'),
-              duration: Duration(seconds: 4),
+            SnackBar(
+              content: Text(isTimeout 
+                ? 'Network timeout! Please check your connection and try again.'
+                : 'Failed to create user record. Please try again.'),
+              backgroundColor: Colors.redAccent,
+              duration: const Duration(seconds: 5),
+              action: SnackBarAction(
+                label: 'Retry',
+                textColor: Colors.white,
+                onPressed: _submitCode,
+              ),
             ),
-          );
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => ProfileDetailsScreen(email: widget.email)),
           );
         }
       }

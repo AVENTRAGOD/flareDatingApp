@@ -144,20 +144,20 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
         if (mounted) {
           Navigator.pop(context); // Close loading dialog
           
-          // Determine root cause
           final bool isTimeout = e.toString().contains('Timeout');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(isTimeout 
-                ? 'Network timeout! Skipping profile details for now...'
-                : 'Firebase error! Bypassing for preview...'),
-              duration: const Duration(seconds: 3),
+                ? 'Network timeout! Please check your connection and try again.'
+                : 'Failed to save profile. Please try again later.'),
+              backgroundColor: Colors.redAccent,
+              duration: const Duration(seconds: 5),
+              action: SnackBarAction(
+                label: 'Retry',
+                textColor: Colors.white,
+                onPressed: _submitProfile,
+              ),
             ),
-          );
-          
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => LikesInterestsScreen(email: widget.email)),
           );
         }
       }

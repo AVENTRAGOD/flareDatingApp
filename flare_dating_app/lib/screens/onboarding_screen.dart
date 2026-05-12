@@ -3,6 +3,8 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'welcome_screen.dart';
+import 'main_container_screen.dart';
+
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -61,8 +63,41 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
           
           SafeArea(
-            child: Column(
+            child: Stack(
               children: [
+                // Bypass Login Button (Temporary)
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const MainContainerScreen(currentUserEmail: 'tester1@example.com'),
+                        ),
+                        (route) => false,
+                      );
+                    },
+                    child: Text(
+                      'Skip Login',
+                      style: GoogleFonts.nunito(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.underline,
+                        shadows: [
+                          const Shadow(
+                            blurRadius: 10.0,
+                            color: Colors.black,
+                            offset: Offset(2.0, 2.0),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Column(
+                  children: [
                 const Spacer(flex: 8),
                 
                 // Carousel
@@ -164,8 +199,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ],
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

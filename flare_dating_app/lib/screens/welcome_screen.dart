@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'sign_in_screen.dart';
 import 'sign_up_options_screen.dart';
+import 'main_container_screen.dart';
+
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -191,6 +193,30 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         ),
                       ),
                     ],
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Bypass Button (Temporary)
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const MainContainerScreen(currentUserEmail: 'tester1@example.com'),
+                        ),
+                        (route) => false,
+                      );
+                    },
+                    child: Text(
+                      'Bypass Login (Temp)',
+                      style: GoogleFonts.nunito(
+                        fontSize: 12,
+                        color: Colors.redAccent.withOpacity(0.7),
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
                   ),
                   
                   const SizedBox(height: 32),

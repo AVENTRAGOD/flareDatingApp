@@ -72,16 +72,38 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
 
   void _applyFilters() {
     setState(() {
-      // Enforce Interest Matchmaking Algorithm
+      // Professional Matchmaking Algorithm:
+      // 1. Calculate scores for all users based on interest overlap
+      // 2. Sort by score descending
+      // 3. Keep users with at least 1 match if pool is large, otherwise show all
+      
+      final scoredUsers = allValidUsers.map((user) {
+        final targetInterests = List<String>.from(user['interests'] ?? []);
+        final overlap = myInterests.where((i) => targetInterests.contains(i)).length;
+        return {'user': user, 'score': overlap};
+      }).toList();
+
+      // Sort by best matches first
+      scoredUsers.sort((a, b) => (b['score'] as int).compareTo(a['score'] as int));
+
       if (myInterests.isNotEmpty) {
-        users = allValidUsers.where((user) {
-          final targetInterests = List<String>.from(user['interests'] ?? []);
-          final overlap = myInterests.where((i) => targetInterests.contains(i)).length;
-          return overlap >= 2; // Strict dating algorithm requirement
-        }).toList();
+        // If we have interests, prioritize those with at least 1 match
+        final matches = scoredUsers.where((u) => (u['score'] as int) >= 1).map((u) => u['user'] as Map<String, dynamic>).toList();
+        
+        if (matches.isNotEmpty) {
+          users = matches;
+        } else {
+          // Fallback: Show everyone if no strict matches found
+          users = allValidUsers;
+          // Shuffle fallback to keep it fresh
+          users.shuffle();
+        }
       } else {
-        users = List.from(allValidUsers);
+        // No interests? Show everyone
+        users = allValidUsers;
+        users.shuffle();
       }
+      
       isLoading = false;
     });
   }
@@ -181,12 +203,37 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   ? const Center(child: CircularProgressIndicator())
                   : users.isEmpty
                       ? Center(
-                          child: Text(
-                            'No more profiles around you.',
-                            style: GoogleFonts.nunito(
-                              fontSize: 18,
-                              color: const Color(0xFF5E5088),
-                            ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.refresh, size: 64, color: const Color(0xFFC76CD9).withOpacity(0.5)),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No more profiles around you.',
+                                style: GoogleFonts.nunito(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF322369),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Check back later or expand your interests!',
+                                style: GoogleFonts.nunito(
+                                  fontSize: 16,
+                                  color: const Color(0xFF5E5088),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              ElevatedButton(
+                                onPressed: _loadUsers,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFC76CD9),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                ),
+                                child: const Text('Refresh', style: TextStyle(color: Colors.white)),
+                              ),
+                            ],
                           ),
                         )
                       : Padding(

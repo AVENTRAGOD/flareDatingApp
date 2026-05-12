@@ -22,6 +22,7 @@ class UserProfileTab extends StatefulWidget {
 
 class _UserProfileTabState extends State<UserProfileTab> {
   Map<String, dynamic>? _userProfile;
+  Map<String, int> _userStats = {'likes_sent': 0, 'passes_sent': 0, 'messages_sent': 0, 'snake_score': 0};
   bool _isLoading = true;
 
   @override
@@ -33,9 +34,11 @@ class _UserProfileTabState extends State<UserProfileTab> {
   Future<void> _loadProfile() async {
     try {
       final profile = await DatabaseService.instance.getUserProfile(widget.currentUserEmail);
+      final stats = await DatabaseService.instance.getUserStats(widget.currentUserEmail);
       if (mounted) {
         setState(() {
           _userProfile = profile;
+          _userStats = stats;
           _isLoading = false;
         });
       }
@@ -212,6 +215,35 @@ class _UserProfileTabState extends State<UserProfileTab> {
               ),
             ),
             
+            // Dynamic Stats Section (Professional Touch)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildStatItem('Likes', _userStats['likes_sent'].toString()),
+                    _buildStatDivider(),
+                    _buildStatItem('Passes', _userStats['passes_sent'].toString()),
+                    _buildStatDivider(),
+                    _buildStatItem('Games', _userStats['snake_score'].toString()),
+                  ],
+                ),
+              ),
+            ),
+            
             const SizedBox(height: 32),
             
             // Info Layout Section
@@ -356,6 +388,37 @@ class _UserProfileTabState extends State<UserProfileTab> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildStatItem(String label, String value) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: GoogleFonts.nunito(
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+            color: const Color(0xFF322369),
+          ),
+        ),
+        Text(
+          label,
+          style: GoogleFonts.nunito(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatDivider() {
+    return Container(
+      height: 30,
+      width: 1,
+      color: Colors.grey[300],
     );
   }
 }
