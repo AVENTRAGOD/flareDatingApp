@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../services/database_service.dart';
 import 'welcome_screen.dart';
@@ -22,8 +23,9 @@ class UserProfileTab extends StatefulWidget {
 
 class _UserProfileTabState extends State<UserProfileTab> {
   Map<String, dynamic>? _userProfile;
-  Map<String, int> _userStats = {'likes_sent': 0, 'passes_sent': 0, 'messages_sent': 0, 'snake_score': 0};
+  Map<String, int> _userStats = {'likes_sent': 0, 'passes_sent': 0, 'messages_sent': 0, 'snake_score': 0, 'pong_score': 0};
   bool _isLoading = true;
+  bool _isUploading = false;
 
   @override
   void initState() {
@@ -48,6 +50,76 @@ class _UserProfileTabState extends State<UserProfileTab> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    
+    if (image != null) {
+      setState(() => _isUploading = true);
+      try {
+        final bytes = await image.readAsBytes();
+        final publicUrl = await DatabaseService.instance.uploadProfilePicture(
+          widget.currentUserEmail, 
+          bytes: bytes,
+        );
+        
+        if (publicUrl != null) {
+          _loadProfile();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+        }
+      } finally {
+        if (mounted) setState(() => _isUploading = false);
+      }
+    }
+  }
+
+  void _editName() {
+    final firstController = TextEditingController(text: _userProfile?['first_name'] ?? '');
+    final lastController = TextEditingController(text: _userProfile?['last_name'] ?? '');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text('Edit Name', style: GoogleFonts.nunito(fontWeight: FontWeight.w900)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: firstController,
+              decoration: const InputDecoration(labelText: 'First Name'),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: lastController,
+              decoration: const InputDecoration(labelText: 'Last Name'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF14C86)),
+            onPressed: () async {
+              await DatabaseService.instance.updateUserProfile(widget.currentUserEmail, {
+                'first_name': firstController.text,
+                'last_name': lastController.text,
+              });
+              if (mounted) {
+                Navigator.pop(context);
+                _loadProfile();
+              }
+            },
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _confirmDelete() {
@@ -81,21 +153,15 @@ class _UserProfileTabState extends State<UserProfileTab> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: () async {
-                // Delete user logic
-                Navigator.pop(context); // Close dialog
-                
-                // Show a loading indicator
+                Navigator.pop(context); 
                 showDialog(
                   context: context,
                   barrierDismissible: false,
                   builder: (context) => const Center(child: CircularProgressIndicator(color: Color(0xFFF14C86))),
                 );
-                
                 try {
                   await DatabaseService.instance.deleteUser(widget.currentUserEmail);
-                  
                   if (mounted) {
-                    // Navigate to WelcomeScreen entirely wiping stack
                     Navigator.pushAndRemoveUntil(
                       context,
                       MaterialPageRoute(builder: (context) => const WelcomeScreen()),
@@ -104,7 +170,7 @@ class _UserProfileTabState extends State<UserProfileTab> {
                   }
                 } catch (e) {
                   if (mounted) {
-                    Navigator.pop(context); // Close loading
+                    Navigator.pop(context); 
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Failed to delete account: $e')),
                     );
@@ -143,7 +209,6 @@ class _UserProfileTabState extends State<UserProfileTab> {
     final fullName = '$firstName $lastName'.trim();
     final avatarPath = _userProfile?['avatar_path']?.toString() ?? '';
     
-    // Support both base64 data URLs and regular http URLs
     ImageProvider? avatarImage;
     if (avatarPath.startsWith('data:image')) {
       try {
@@ -156,12 +221,11 @@ class _UserProfileTabState extends State<UserProfileTab> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6EEF6), // Extremely light pink/purple custom BG
+      backgroundColor: const Color(0xFFF6EEF6),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header Gradient Banner
             Container(
               height: 140,
               width: double.infinity,
@@ -178,32 +242,50 @@ class _UserProfileTabState extends State<UserProfileTab> {
                   padding: const EdgeInsets.symmetric(horizontal: 24.0),
                   child: Row(
                     children: [
-                      // Avatar
-                      Container(
-                        width: 70,
-                        height: 70,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.black87, width: 2),
-                          image: avatarImage != null
-                              ? DecorationImage(
-                                  image: avatarImage,
-                                  fit: BoxFit.cover,
-                                )
-                              : null,
-                          color: const Color(0xFF322369),
+                      GestureDetector(
+                        onTap: _pickImage,
+                        child: Stack(
+                          children: [
+                            Container(
+                              width: 70,
+                              height: 70,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.black87, width: 2),
+                                image: avatarImage != null
+                                    ? DecorationImage(
+                                        image: avatarImage,
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
+                                color: const Color(0xFF322369),
+                              ),
+                              child: avatarImage == null ? const Icon(Icons.person, color: Colors.white, size: 30) : null,
+                            ),
+                            if (_isUploading)
+                              const Positioned.fill(
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                              ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                                child: const Icon(Icons.camera_alt, size: 14, color: Color(0xFF322369)),
+                              ),
+                            ),
+                          ],
                         ),
-                        child: avatarImage == null ? const Icon(Icons.person, color: Colors.white, size: 30) : null,
                       ),
                       const SizedBox(width: 16),
-                      // Name
                       Expanded(
                         child: Text(
                           fullName.isNotEmpty ? fullName : 'User',
                           style: GoogleFonts.nunito(
                             fontSize: 28,
                             fontWeight: FontWeight.w900,
-                            color: Colors.white, // White text looks better on the gradient
+                            color: Colors.white,
                             shadows: [
                               Shadow(
                                 blurRadius: 4.0,
@@ -222,7 +304,6 @@ class _UserProfileTabState extends State<UserProfileTab> {
               ),
             ),
             
-            // Dynamic Stats Section (Professional Touch)
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
               child: Container(
@@ -245,7 +326,7 @@ class _UserProfileTabState extends State<UserProfileTab> {
                     _buildStatDivider(),
                     _buildStatItem('Passes', _userStats['passes_sent'].toString()),
                     _buildStatDivider(),
-                    _buildStatItem('Games', _userStats['snake_score'].toString()),
+                    _buildStatItem('Games', (_userStats['snake_score']! + _userStats['pong_score']!).toString()),
                   ],
                 ),
               ),
@@ -253,19 +334,21 @@ class _UserProfileTabState extends State<UserProfileTab> {
             
             const SizedBox(height: 32),
             
-            // Info Layout Section
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32.0),
               child: Column(
                 children: [
-                  _buildDetailedInfoRow(
-                    icon: Icons.favorite,
-                    title: 'User Name',
-                    value: fullName.isNotEmpty ? fullName : 'User',
+                  GestureDetector(
+                    onTap: _editName,
+                    child: _buildDetailedInfoRow(
+                      icon: Icons.person_outline,
+                      title: 'User Name',
+                      value: fullName.isNotEmpty ? fullName : 'User',
+                    ),
                   ),
                   const SizedBox(height: 24),
                   _buildDetailedInfoRow(
-                    icon: Icons.email,
+                    icon: Icons.email_outlined,
                     title: 'Email',
                     value: widget.currentUserEmail,
                   ),
@@ -273,7 +356,7 @@ class _UserProfileTabState extends State<UserProfileTab> {
                   GestureDetector(
                     onTap: () => _showComingSoon('Password Reset'),
                     child: _buildDetailedInfoRow(
-                      icon: Icons.lock,
+                      icon: Icons.lock_outline,
                       title: 'Password',
                       value: 'Reset Password',
                       valueColor: Colors.grey[600],
@@ -285,7 +368,6 @@ class _UserProfileTabState extends State<UserProfileTab> {
             
             const SizedBox(height: 48),
             
-            // Settings Header
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Column(
@@ -311,22 +393,21 @@ class _UserProfileTabState extends State<UserProfileTab> {
                   
                   const SizedBox(height: 24),
                   
-                  // Settings List
-                  _buildSettingOption(Icons.lock, 'Privacy Options', onTap: () => _showComingSoon('Privacy Options')),
-                  _buildSettingOption(Icons.notifications, 'Safety', onTap: () => _showComingSoon('Safety Center')),
-                  _buildSettingOption(Icons.error, 'Help Center', onTap: () {
+                  _buildSettingOption(Icons.lock_person_outlined, 'Privacy Options', onTap: () => _showComingSoon('Privacy Options')),
+                  _buildSettingOption(Icons.notifications_outlined, 'Safety', onTap: () => _showComingSoon('Safety Center')),
+                  _buildSettingOption(Icons.help_outline, 'Help Center', onTap: () {
                     Navigator.push(context, MaterialPageRoute(builder: (context) => const UserGuideScreen()));
                   }),
-                  _buildSettingOption(Icons.article, 'Terms & Conditions', onTap: () => _showComingSoon('Terms & Conditions')),
-                  _buildSettingOption(Icons.shield, 'Achievements', onTap: () {
+                  _buildSettingOption(Icons.article_outlined, 'Terms & Conditions', onTap: () => _showComingSoon('Terms & Conditions')),
+                  _buildSettingOption(Icons.workspace_premium_outlined, 'Achievements', onTap: () {
                     Navigator.push(context, MaterialPageRoute(builder: (context) => AchievementsScreen(currentUserEmail: widget.currentUserEmail)));
                   }),
-                  _buildSettingOption(Icons.videogame_asset, 'Games', onTap: () {
+                  _buildSettingOption(Icons.sports_esports_outlined, 'Games', onTap: () {
                     Navigator.push(context, MaterialPageRoute(builder: (context) => GamesScreen(currentUserEmail: widget.currentUserEmail)));
                   }),
-                  _buildSettingOption(Icons.delete, 'Delete Account', onTap: _confirmDelete),
+                  _buildSettingOption(Icons.delete_outline, 'Delete Account', onTap: _confirmDelete),
                   
-                  const SizedBox(height: 40), // Bottom padding
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
@@ -343,10 +424,10 @@ class _UserProfileTabState extends State<UserProfileTab> {
           width: 50,
           height: 50,
           decoration: BoxDecoration(
-            color: const Color(0xFFCF65D9), // Solid vibrant purple-pink
+            color: const Color(0xFFCF65D9),
             borderRadius: BorderRadius.circular(16),
           ),
-          child: Icon(icon, color: Colors.black, size: 28), // Black inner icon matching design
+          child: Icon(icon, color: Colors.black, size: 28),
         ),
         const SizedBox(width: 16),
         Column(
@@ -389,7 +470,7 @@ class _UserProfileTabState extends State<UserProfileTab> {
               style: GoogleFonts.nunito(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
-                color: const Color(0xFFC76CD9), // Vibrant pinkish purple text
+                color: const Color(0xFFC76CD9),
               ),
             ),
           ],
