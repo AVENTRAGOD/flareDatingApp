@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:convert';
 import 'dart:async';
+import 'dart:math';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DatabaseService {
@@ -270,6 +271,8 @@ class DatabaseService {
         'Dreaming big and working hard.'
       ];
 
+      final Random random = Random();
+
       for (int i = 0; i < 10; i++) {
         final email = 'tester${i + 1}@example.com';
         
@@ -278,6 +281,9 @@ class DatabaseService {
         
         final age = 22 + (i % 8);
         final dob = DateTime.now().subtract(Duration(days: age * 365 + (i * 10)));
+
+        // Generate a random high score for the leaderboard
+        final int randomHighScore = 5 + random.nextInt(45);
 
         await supabase.from('users').upsert({
           'email': email,
@@ -289,6 +295,7 @@ class DatabaseService {
           'interests': selectedInterests,
           'location': locations[i % locations.length],
           'bio': bios[i],
+          'snake_high_score': randomHighScore,
         });
       }
 
@@ -303,6 +310,7 @@ class DatabaseService {
         'interests': ['Photography', 'Music', 'Travelling'],
         'location': 'Colombo, Sri Lanka',
         'bio': 'Flare Dating App Developer Extraordinaire!',
+        'snake_high_score': 100, // Give developer a nice head start ;)
       });
 
       print('Seed: Successfully seeded 11 dummy users.');

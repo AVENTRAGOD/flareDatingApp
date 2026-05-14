@@ -69,36 +69,46 @@ class _GamesScreenState extends State<GamesScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Hero Icon
+                    // Personal Score Card
                     Container(
-                      padding: const EdgeInsets.all(32),
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF4CAF50).withOpacity(0.1), // Green hue for snake
-                        shape: BoxShape.circle,
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFF14C86), Color(0xFFC76CD9)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFF14C86).withOpacity(0.3),
+                            blurRadius: 15,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
                       ),
-                      child: const Icon(
-                        Icons.gesture,
-                        size: 80,
-                        color: Color(0xFF4CAF50),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    
-                    Text(
-                      'Classic Snake',
-                      style: GoogleFonts.nunito(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w900,
-                        color: const Color(0xFF322369),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Personal High Score: $_personalHighScore',
-                      style: GoogleFonts.nunito(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFFF14C86),
+                      child: Column(
+                        children: [
+                          Text(
+                            'YOUR HIGH SCORE',
+                            style: GoogleFonts.nunito(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white.withOpacity(0.8),
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '$_personalHighScore',
+                            style: GoogleFonts.nunito(
+                              fontSize: 48,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     
@@ -107,17 +117,16 @@ class _GamesScreenState extends State<GamesScreen> {
                     // Start Button
                     SizedBox(
                       width: double.infinity,
-                      height: 60,
+                      height: 64,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4CAF50),
+                          backgroundColor: const Color(0xFF322369),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
+                            borderRadius: BorderRadius.circular(32),
                           ),
-                          elevation: 4,
+                          elevation: 8,
                         ),
                         onPressed: () async {
-                          // Navigate to Game and wait for return
                           await Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -126,17 +135,23 @@ class _GamesScreenState extends State<GamesScreen> {
                               ),
                             ),
                           );
-                          // Refresh data when returning (in case score changed)
                           _loadData();
                         },
-                        child: Text(
-                          'PLAY NOW',
-                          style: GoogleFonts.nunito(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            letterSpacing: 2,
-                          ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 32),
+                            const SizedBox(width: 8),
+                            Text(
+                              'PLAY CLASSIC SNAKE',
+                              style: GoogleFonts.nunito(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -144,18 +159,21 @@ class _GamesScreenState extends State<GamesScreen> {
                     const SizedBox(height: 48),
                     
                     // Leaderboard Section
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Global Leaderboard',
-                        style: GoogleFonts.nunito(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF322369),
+                    Row(
+                      children: [
+                        const Icon(Icons.leaderboard_rounded, color: Color(0xFF322369), size: 28),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Global Rankings',
+                          style: GoogleFonts.nunito(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                            color: const Color(0xFF322369),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     
                     if (_leaderboard.isEmpty)
                       Center(
@@ -168,80 +186,88 @@ class _GamesScreenState extends State<GamesScreen> {
                         ),
                       )
                     else
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 5),
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _leaderboard.length,
+                        itemBuilder: (context, index) {
+                          final user = _leaderboard[index];
+                          final score = user['snake_high_score'] ?? 0;
+                          final name = user['first_name'] ?? 'Anonymous';
+                          final photo = user['avatar_path'] as String?;
+                          
+                          bool isTopThree = index < 3;
+                          Color rankColor = isTopThree 
+                            ? (index == 0 ? const Color(0xFFFFD700) : (index == 1 ? const Color(0xFFC0C0C0) : const Color(0xFFCD7F32)))
+                            : Colors.grey[400]!;
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              border: isTopThree ? Border.all(color: rankColor.withOpacity(0.5), width: 2) : null,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.03),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        child: ListView.separated(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _leaderboard.length,
-                          separatorBuilder: (context, index) => Divider(color: Colors.grey[200], height: 1),
-                          itemBuilder: (context, index) {
-                            final user = _leaderboard[index];
-                            final score = user['snake_high_score'] ?? 0;
-                            final name = user['first_name'] ?? 'Anonymous';
-                            final photo = user['avatar_path'] as String?;
-                            
-                            // Top 3 distinct styles
-                            Color rankColor = Colors.grey[600]!;
-                            if (index == 0) rankColor = const Color(0xFFFFD700); // Gold
-                            if (index == 1) rankColor = const Color(0xFFC0C0C0); // Silver
-                            if (index == 2) rankColor = const Color(0xFFCD7F32); // Bronze
-                            
-                            return ListTile(
-                              leading: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    '#${index + 1}',
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 40,
+                                  child: Text(
+                                    '${index + 1}',
                                     style: GoogleFonts.nunito(
-                                      fontWeight: FontWeight.bold,
+                                      fontWeight: FontWeight.w900,
                                       color: rankColor,
+                                      fontSize: 20,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                CircleAvatar(
+                                  radius: 22,
+                                  backgroundImage: _resolveAvatar(photo ?? ''),
+                                  backgroundColor: const Color(0xFFFDE8F5),
+                                  child: _resolveAvatar(photo ?? '') == null
+                                    ? const Icon(Icons.person, color: Color(0xFFF14C86), size: 20) : null,
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Text(
+                                    name,
+                                    style: GoogleFonts.nunito(
+                                      fontWeight: FontWeight.w800,
+                                      color: const Color(0xFF322369),
                                       fontSize: 16,
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
-                                  CircleAvatar(
-                                    backgroundImage: _resolveAvatar(photo ?? ''),
-                                    backgroundColor: const Color(0xFFC76CD9),
-                                    child: _resolveAvatar(photo ?? '') == null
-                                      ? const Icon(Icons.person, color: Colors.white, size: 20) : null,
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: isTopThree ? rankColor.withOpacity(0.1) : const Color(0xFFFDE8F5),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                ],
-                              ),
-                              title: Text(
-                                name,
-                                style: GoogleFonts.nunito(
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF322369),
-                                ),
-                              ),
-                              trailing: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFDE8F5),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  '$score',
-                                  style: GoogleFonts.nunito(
-                                    fontWeight: FontWeight.w900,
-                                    color: const Color(0xFFF14C86),
+                                  child: Text(
+                                    '$score',
+                                    style: GoogleFonts.nunito(
+                                      fontWeight: FontWeight.w900,
+                                      color: isTopThree ? rankColor : const Color(0xFFF14C86),
+                                      fontSize: 16,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
+                              ],
+                            ),
+                          );
+                        },
                       ),
                   ],
                 ),
