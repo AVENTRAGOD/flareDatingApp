@@ -8,9 +8,12 @@ flutter doctor
 # We must CD into the subfolder because Vercel starts at the root
 cd flare_dating_app || exit 1
 
+echo "Enabling web support..."
+flutter config --enable-web
+
 echo "Fetching dependencies..."
 flutter pub get
 
-echo "Building web app for production (Forced HTML Renderer)..."
-# Using --web-renderer html helps load large assets/images more reliably on web
-flutter build web --release --web-renderer html
+echo "Building web app for production..."
+# Removed --web-renderer html as it was causing exit 64
+flutter build web --release
