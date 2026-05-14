@@ -268,22 +268,30 @@ class _SnakeGameScreenState extends State<SnakeGameScreen> {
                           return Container(
                             decoration: BoxDecoration(
                               color: isHead ? const Color(0xFF66BB6A) : const Color(0xFF4CAF50), // Snake body
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: Colors.black, width: 1),
+                              // Blocky style with sharp borders
+                              border: Border.all(color: Colors.black.withOpacity(0.5), width: 1.5),
                             ),
                           );
                         } else if (foodPosition == index) {
                           return Container(
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF14C86), // Flare pink apple
-                              shape: BoxShape.circle,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFF14C86), // Flare pink apple
+                              // Blocky apple too
                               border: Border.all(color: Colors.black, width: 2),
                             ),
+                            child: const Icon(Icons.favorite, size: 10, color: Colors.white),
                           );
                         } else {
-                          // Empty square
-                          return Container(
-                            color: Colors.transparent,
+                          // Grid background dots for a retro feel
+                          return Center(
+                            child: Container(
+                              width: 2,
+                              height: 2,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[900],
+                                shape: BoxShape.circle,
+                              ),
+                            ),
                           );
                         }
                       },

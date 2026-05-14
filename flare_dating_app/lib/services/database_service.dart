@@ -61,15 +61,17 @@ class DatabaseService {
       
       final userDoc = await getUserProfile(email);
       int snakeScore = userDoc?['snake_high_score'] ?? 0;
+      int pongScore = userDoc?['pingpong_high_score'] ?? 0;
 
       return {
         'likes_sent': likesRes.length,
         'passes_sent': passesRes.length,
         'messages_sent': msgRes.length,
         'snake_score': snakeScore,
+        'pong_score': pongScore,
       };
     } catch (e) {
-      return {'likes_sent': 0, 'passes_sent': 0, 'messages_sent': 0, 'snake_score': 0};
+      return {'likes_sent': 0, 'passes_sent': 0, 'messages_sent': 0, 'snake_score': 0, 'pong_score': 0};
     }
   }
 
@@ -85,8 +87,21 @@ class DatabaseService {
     }
   }
 
+  Future<void> updatePongHighScore(String email, int newScore) async {
+    final userProfile = await getUserProfile(email);
+    final int currentHigh = userProfile?['pingpong_high_score'] ?? 0;
+    if (newScore > currentHigh) {
+      await updateUserProfile(email, {'pingpong_high_score': newScore});
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getSnakeLeaderboard() async {
     final res = await supabase.from('users').select().order('snake_high_score', ascending: false).limit(10);
+    return List<Map<String, dynamic>>.from(res);
+  }
+
+  Future<List<Map<String, dynamic>>> getPongLeaderboard() async {
+    final res = await supabase.from('users').select().order('pingpong_high_score', ascending: false).limit(10);
     return List<Map<String, dynamic>>.from(res);
   }
 
@@ -282,8 +297,9 @@ class DatabaseService {
         final age = 22 + (i % 8);
         final dob = DateTime.now().subtract(Duration(days: age * 365 + (i * 10)));
 
-        // Generate a random high score for the leaderboard
-        final int randomHighScore = 5 + random.nextInt(45);
+        // Generate random high scores for the leaderboards
+        final int randomSnakeScore = 5 + random.nextInt(45);
+        final int randomPongScore = 5 + random.nextInt(35);
 
         await supabase.from('users').upsert({
           'email': email,
@@ -295,7 +311,8 @@ class DatabaseService {
           'interests': selectedInterests,
           'location': locations[i % locations.length],
           'bio': bios[i],
-          'snake_high_score': randomHighScore,
+          'snake_high_score': randomSnakeScore,
+          'pingpong_high_score': randomPongScore,
         });
       }
 
@@ -310,7 +327,8 @@ class DatabaseService {
         'interests': ['Photography', 'Music', 'Travelling'],
         'location': 'Colombo, Sri Lanka',
         'bio': 'Flare Dating App Developer Extraordinaire!',
-        'snake_high_score': 100, // Give developer a nice head start ;)
+        'snake_high_score': 100,
+        'pingpong_high_score': 85,
       });
 
       print('Seed: Successfully seeded 11 dummy users.');
