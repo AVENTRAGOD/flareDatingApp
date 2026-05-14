@@ -127,43 +127,71 @@ class DatabaseService {
   }
 
   Future<void> recordInteraction(String myEmail, String targetEmail, bool isLike) async {
-    final interactionId = '${myEmail}_$targetEmail';
-    await supabase.from('interactions').upsert({
-      'id': interactionId,
-      'from_email': myEmail,
-      'to_email': targetEmail,
-      'is_like': isLike,
-    });
+    try {
+      final interactionId = '${myEmail}_$targetEmail';
+      await supabase.from('interactions').upsert({
+        'id': interactionId,
+        'from_email': myEmail,
+        'to_email': targetEmail,
+        'is_like': isLike,
+      });
+    } catch (e) {
+      print('Error recording interaction: $e');
+    }
   }
 
   Future<bool> checkMutualMatch(String myEmail, String targetEmail) async {
-    final interactionId = '${targetEmail}_$myEmail';
-    final response = await supabase.from('interactions').select('is_like').eq('id', interactionId).maybeSingle();
-    return response?['is_like'] == true;
+    try {
+      final interactionId = '${targetEmail}_$myEmail';
+      final response = await supabase.from('interactions').select('is_like').eq('id', interactionId).maybeSingle();
+      return response?['is_like'] == true;
+    } catch (e) {
+      print('Error checking mutual match: $e');
+      return false;
+    }
   }
 
   Future<void> removeInteraction(String myEmail, String targetEmail) async {
-    final interactionId = '${myEmail}_$targetEmail';
-    await supabase.from('interactions').delete().eq('id', interactionId);
+    try {
+      final interactionId = '${myEmail}_$targetEmail';
+      await supabase.from('interactions').delete().eq('id', interactionId);
+    } catch (e) {
+      print('Error removing interaction: $e');
+    }
   }
 
   Future<List<String>> getSwipedUsers(String myEmail) async {
-    final res = await supabase.from('interactions').select('to_email').eq('from_email', myEmail);
-    return res.map((r) => r['to_email'] as String).toList();
+    try {
+      final res = await supabase.from('interactions').select('to_email').eq('from_email', myEmail);
+      return res.map((r) => r['to_email'] as String).toList();
+    } catch (e) {
+      print('Error getting swiped users: $e');
+      return [];
+    }
   }
 
   Future<List<String>> getUsersWhoLikedMe(String currentUserEmail) async {
-    final res = await supabase.from('interactions').select('from_email').eq('to_email', currentUserEmail).eq('is_like', true);
-    return res.map((r) => r['from_email'] as String).toList();
+    try {
+      final res = await supabase.from('interactions').select('from_email').eq('to_email', currentUserEmail).eq('is_like', true);
+      return res.map((r) => r['from_email'] as String).toList();
+    } catch (e) {
+      print('Error getting users who liked me: $e');
+      return [];
+    }
   }
 
   Future<List<Map<String, dynamic>>> getLikedUsers(String myEmail) async {
-    final res = await supabase.from('interactions').select('to_email').eq('from_email', myEmail).eq('is_like', true);
-    final List<String> likedEmails = res.map((r) => r['to_email'] as String).toList();
-    if (likedEmails.isEmpty) return [];
-    
-    final usersRes = await supabase.from('users').select().inFilter('email', likedEmails);
-    return List<Map<String, dynamic>>.from(usersRes);
+    try {
+      final res = await supabase.from('interactions').select('to_email').eq('from_email', myEmail).eq('is_like', true);
+      final List<String> likedEmails = res.map((r) => r['to_email'] as String).toList();
+      if (likedEmails.isEmpty) return [];
+      
+      final usersRes = await supabase.from('users').select().inFilter('email', likedEmails);
+      return List<Map<String, dynamic>>.from(usersRes);
+    } catch (e) {
+      print('Error getting liked users: $e');
+      return [];
+    }
   }
 
   String getChatId(String user1, String user2) {
