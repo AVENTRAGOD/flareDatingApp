@@ -225,8 +225,17 @@ class DatabaseService {
   
   Future<void> seedDummyUsers() async {
     try {
-      final existing = await getUserProfile('tester1@example.com');
-      if (existing != null) {
+      final List<String> testEmails = ['tester1@example.com', 'nisalsayuranga0710@gmail.com'];
+      bool needsSeeding = false;
+      for (var email in testEmails) {
+        final existing = await getUserProfile(email);
+        if (existing == null) {
+          needsSeeding = true;
+          break;
+        }
+      }
+
+      if (!needsSeeding) {
         print('Seed: Dummy users already exist. Skipping.');
         return; 
       }
@@ -248,11 +257,22 @@ class DatabaseService {
       ];
 
       final List<String> firstNames = ['Sarah', 'Emma', 'Jessica', 'David', 'Michael', 'Chloe', 'Daniel', 'Olivia', 'James', 'Mia'];
+      final List<String> bios = [
+        'Love traveling and exploring new cultures.',
+        'Tech enthusiast and amateur photographer.',
+        'Coffee lover and bookworm.',
+        'Always up for a good adventure!',
+        'Professional foodie and chef.',
+        'Music is my life.',
+        'Hiking and fitness are my passions.',
+        'Art is where my heart is.',
+        'Living life to the fullest.',
+        'Dreaming big and working hard.'
+      ];
 
       for (int i = 0; i < 10; i++) {
         final email = 'tester${i + 1}@example.com';
         
-        // Random interests from the unified set
         final List<String> interestsPool = List.from(availableInterests)..shuffle();
         final selectedInterests = interestsPool.take(4).toList();
         
@@ -268,9 +288,24 @@ class DatabaseService {
           'avatar_path': photos[i],
           'interests': selectedInterests,
           'location': locations[i % locations.length],
+          'bio': bios[i],
         });
       }
-      print('Seed: Successfully seeded 10 dummy users.');
+
+      // Specifically seed the user's email if it doesn't exist
+      await supabase.from('users').upsert({
+        'email': 'nisalsayuranga0710@gmail.com',
+        'first_name': 'Nisal',
+        'last_name': 'Sayuranga',
+        'gender': 'Male',
+        'dob': DateTime(2000, 1, 1).toIso8601String(),
+        'avatar_path': photos[3],
+        'interests': ['Photography', 'Music', 'Travelling'],
+        'location': 'Colombo, Sri Lanka',
+        'bio': 'Flare Dating App Developer Extraordinaire!',
+      });
+
+      print('Seed: Successfully seeded 11 dummy users.');
     } catch (e) {
       print('Seed: Critical error during seeding: $e');
     }

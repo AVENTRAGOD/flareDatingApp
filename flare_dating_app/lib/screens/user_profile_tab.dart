@@ -199,11 +199,18 @@ class _UserProfileTabState extends State<UserProfileTab> {
                       // Name
                       Expanded(
                         child: Text(
-                          firstName, // Figma specifically shows big first name next to it
+                          fullName.isNotEmpty ? fullName : 'User',
                           style: GoogleFonts.nunito(
-                            fontSize: 32,
+                            fontSize: 28,
                             fontWeight: FontWeight.w900,
-                            color: Colors.black, // Dark text in Figma
+                            color: Colors.white, // White text looks better on the gradient
+                            shadows: [
+                              Shadow(
+                                blurRadius: 4.0,
+                                color: Colors.black.withOpacity(0.3),
+                                offset: const Offset(1.0, 1.0),
+                              ),
+                            ],
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -254,7 +261,7 @@ class _UserProfileTabState extends State<UserProfileTab> {
                   _buildDetailedInfoRow(
                     icon: Icons.favorite,
                     title: 'User Name',
-                    value: fullName,
+                    value: fullName.isNotEmpty ? fullName : 'User',
                   ),
                   const SizedBox(height: 24),
                   _buildDetailedInfoRow(

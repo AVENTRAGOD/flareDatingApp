@@ -65,31 +65,49 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           SafeArea(
             child: Stack(
               children: [
-                // Bypass Login Button (Temporary)
+                // Premium Direct Access Button (Developer Bypass)
                 Positioned(
-                  top: 10,
-                  right: 10,
-                  child: TextButton(
-                    onPressed: () {
+                  top: 20,
+                  right: 20,
+                  child: GestureDetector(
+                    onTap: () {
                       Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const MainContainerScreen(currentUserEmail: 'tester1@example.com'),
+                          builder: (context) => const MainContainerScreen(currentUserEmail: 'nisalsayuranga0710@gmail.com'),
                         ),
                         (route) => false,
                       );
                     },
-                    child: Text(
-                      'Skip Login',
-                      style: GoogleFonts.nunito(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        decoration: TextDecoration.underline,
-                        shadows: [
-                          const Shadow(
-                            blurRadius: 10.0,
-                            color: Colors.black,
-                            offset: Offset(2.0, 2.0),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFC556B8), Color(0xFF8B51E5)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.bolt, color: Colors.white, size: 18),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Direct Access',
+                            style: GoogleFonts.nunito(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                            ),
                           ),
                         ],
                       ),
