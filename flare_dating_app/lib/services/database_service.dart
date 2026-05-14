@@ -32,6 +32,7 @@ class DatabaseService {
       await supabase.from('users').upsert(userDetails);
     } catch (e) {
       print('Error inserting user: $e');
+      rethrow;
     }
   }
 

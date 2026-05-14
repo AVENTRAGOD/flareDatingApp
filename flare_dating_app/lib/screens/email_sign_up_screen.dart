@@ -42,11 +42,10 @@ class _EmailSignUpScreenState extends State<EmailSignUpScreen> {
       final String code = (1000 + Random().nextInt(9000)).toString();
 
       // Collect data to be saved LATER
+      // Note: username, mobile_number, and password are not in the Supabase schema
+      // so we only pass the email to be saved.
       final user = {
-        'username': _usernameController.text.trim(),
         'email': _emailController.text.trim().toLowerCase(),
-        'mobile_number': _mobileController.text.trim(),
-        'password': _passwordController.text,
       };
 
       // Show a loading indicator while the email is being sent
