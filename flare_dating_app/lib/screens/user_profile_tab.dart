@@ -467,6 +467,4 @@ class _UserProfileTabState extends State<UserProfileTab> {
       ),
     );
   }
-
-  }
 }
