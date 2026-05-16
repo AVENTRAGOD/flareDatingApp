@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/database_service.dart';
 import 'welcome_screen.dart';
@@ -183,6 +184,30 @@ class _UserProfileTabState extends State<UserProfileTab> {
         );
       },
     );
+  }
+
+  void _logout() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator(color: Color(0xFFF14C86))),
+    );
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('currentUserEmail');
+      if (mounted) {
+        Navigator.pop(context); // close dialog
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+          (Route<dynamic> route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    }
   }
 
   void _showComingSoon(String title) {
@@ -405,6 +430,7 @@ class _UserProfileTabState extends State<UserProfileTab> {
                   _buildSettingOption(Icons.sports_esports_outlined, 'Games', onTap: () {
                     Navigator.push(context, MaterialPageRoute(builder: (context) => GamesScreen(currentUserEmail: widget.currentUserEmail)));
                   }),
+                  _buildSettingOption(Icons.logout_outlined, 'Log Out', onTap: _logout),
                   _buildSettingOption(Icons.delete_outline, 'Delete Account', onTap: _confirmDelete),
                   
                   const SizedBox(height: 40),

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'main_container_screen.dart';
 
@@ -91,6 +92,9 @@ class _SignInOtpScreenState extends State<SignInOtpScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Verification Successful! Welcome back!')),
         );
+        
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('currentUserEmail', widget.email);
         
         // Push Replacement directly to the Main Dashboard!
         Navigator.pushReplacement(

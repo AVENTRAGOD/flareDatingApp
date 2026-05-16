@@ -4,7 +4,9 @@ import 'package:device_preview/device_preview.dart';
 import 'package:flutter/foundation.dart';
 
 import 'screens/onboarding_screen.dart';
+import 'screens/main_container_screen.dart';
 import 'services/database_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,16 +19,21 @@ void main() async {
   // Fire and forget dummy tester profiles so it doesn't block the UI
   DatabaseService.instance.seedDummyUsers();
 
+  // Check for cached login session
+  final prefs = await SharedPreferences.getInstance();
+  final cachedEmail = prefs.getString('currentUserEmail');
+
   runApp(
     DevicePreview(
       enabled: !kReleaseMode,
-      builder: (context) => const FlareDatingApp(),
+      builder: (context) => FlareDatingApp(initialEmail: cachedEmail),
     ),
   );
 }
 
 class FlareDatingApp extends StatelessWidget {
-  const FlareDatingApp({super.key});
+  final String? initialEmail;
+  const FlareDatingApp({super.key, this.initialEmail});
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +47,9 @@ class FlareDatingApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFC556B8)),
         useMaterial3: true,
       ),
-      home: const OnboardingScreen(),
+      home: initialEmail != null && initialEmail!.isNotEmpty
+          ? MainContainerScreen(currentUserEmail: initialEmail!)
+          : const OnboardingScreen(),
     );
   }
 }

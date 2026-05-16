@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/database_service.dart';
-import 'main_container_screen.dart'; // Next page Placeholder
+import 'main_container_screen.dart';
 
 class LocationScreen extends StatefulWidget {
   final String email;
@@ -60,6 +61,9 @@ class _LocationScreenState extends State<LocationScreen> {
       await DatabaseService.instance.updateUserProfile(widget.email, {'location': _selectedLocation}).timeout(const Duration(seconds: 5));
 
       if (mounted) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('currentUserEmail', widget.email);
+        
         // Navigate to the next screen (e.g., Main Container)
         Navigator.pushReplacement(
           context,
