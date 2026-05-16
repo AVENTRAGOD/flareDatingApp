@@ -1,8 +1,13 @@
 import 'dart:ui';
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'dart:io';
 import '../services/database_service.dart';
 
 class ChatRoomScreen extends StatefulWidget {
@@ -27,6 +32,14 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   final TextEditingController _msgController = TextEditingController();
   late final String _chatId;
   final ImagePicker _picker = ImagePicker();
+  
+  // Voice Recording
+  final AudioRecorder _recorder = AudioRecorder();
+  bool _isRecording = false;
+  String? _recordingPath;
+  
+  // Audio Playback
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
@@ -34,9 +47,17 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _chatId = DatabaseService.instance.getChatId(widget.currentUserEmail, widget.targetUserEmail);
   }
 
-  Future<void> _sendMessage({String? imageUrl}) async {
+  @override
+  void dispose() {
+    _msgController.dispose();
+    _recorder.dispose();
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendMessage({String? imageUrl, String? audioUrl}) async {
     final text = _msgController.text.trim();
-    if (text.isEmpty && imageUrl == null) return;
+    if (text.isEmpty && imageUrl == null && audioUrl == null) return;
 
     _msgController.clear();
     await DatabaseService.instance.sendMessage(
@@ -44,6 +65,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       widget.targetUserEmail,
       text,
       imageUrl: imageUrl,
+      audioUrl: audioUrl,
     );
   }
 
@@ -56,7 +78,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         const SnackBar(content: Text('Sending image...'), duration: Duration(seconds: 1)),
       );
 
-      // Encode image as base64 and embed inline — no Firebase Storage needed
       final bytes = await image.readAsBytes();
       final base64String = 'data:image/jpeg;base64,${base64Encode(bytes)}';
       _sendMessage(imageUrl: base64String);
@@ -68,81 +89,103 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     }
   }
 
+  Future<void> _startRecording() async {
+    try {
+      if (await _recorder.hasPermission()) {
+        final dir = await getTemporaryDirectory();
+        final path = '${dir.path}/recording_${DateTime.now().millisecondsSinceEpoch}.m4a';
+        
+        const config = RecordConfig();
+        await _recorder.start(config, path: path);
+        
+        setState(() {
+          _isRecording = true;
+          _recordingPath = path;
+        });
+      }
+    } catch (e) {
+      debugPrint('Start recording error: $e');
+    }
+  }
+
+  Future<void> _stopAndSendRecording() async {
+    try {
+      final path = await _recorder.stop();
+      setState(() => _isRecording = false);
+      
+      if (path != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sending voice message...'), duration: Duration(seconds: 1)),
+        );
+        
+        // In a real app, upload this file. For now, we'll simulate by passing the path
+        // and let DatabaseService handle the "audio" upload similar to images.
+        // We'll read it as base64 for simplicity in this demo environment.
+        final bytes = await File(path).readAsBytes();
+        final base64Audio = 'data:audio/m4a;base64,${base64Encode(bytes)}';
+        
+        _sendMessage(audioUrl: base64Audio);
+      }
+    } catch (e) {
+      debugPrint('Stop recording error: $e');
+      setState(() => _isRecording = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
+      backgroundColor: Colors.white,
+      body: Column(
         children: [
-          // Background
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment.topLeft,
-                  radius: 1.5,
-                  colors: [Color(0xFF1A1635), Color(0xFF0D0B1F)],
-                ),
-              ),
+          _buildCustomHeader(),
+          
+          // Messages Stream
+          Expanded(
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: DatabaseService.instance.getChatStream(_chatId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator(color: Color(0xFFF14C86)));
+                }
+
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.chat_bubble_outline_rounded, size: 64, color: Colors.grey[200]),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No messages yet',
+                          style: GoogleFonts.nunito(color: Colors.grey[400], fontSize: 16),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                final docs = snapshot.data!;
+                return ListView.builder(
+                  reverse: true,
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
+                  itemCount: docs.length,
+                  itemBuilder: (context, index) {
+                    final data = docs[index];
+                    final isMe = data['senderId'] == widget.currentUserEmail;
+                    final text = data['text'] as String? ?? '';
+                    final imageUrl = data['imageUrl'] as String?;
+                    final audioUrl = data['audioUrl'] as String?; // New field
+                    final dt = data['timestamp'] != null ? DateTime.tryParse(data['timestamp']) : null;
+                    
+                    return _buildMessageBubble(isMe, text, imageUrl, audioUrl, dt);
+                  },
+                );
+              },
             ),
           ),
           
-          Column(
-            children: [
-              _buildCustomHeader(),
-              
-              // Messages Stream
-              Expanded(
-                child: StreamBuilder<List<Map<String, dynamic>>>(
-                  stream: DatabaseService.instance.getChatStream(_chatId),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator(color: Color(0xFFF14C86)));
-                    }
-
-                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.chat_bubble_outline_rounded, size: 48, color: Colors.white.withOpacity(0.1)),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Start your story...',
-                              style: GoogleFonts.outfit(color: Colors.white.withOpacity(0.3)),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-
-                    final docs = snapshot.data!;
-                    return ListView.builder(
-                      reverse: true,
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                      itemCount: docs.length,
-                      itemBuilder: (context, index) {
-                        final data = docs[index];
-                        final isMe = data['senderId'] == widget.currentUserEmail;
-                        final text = data['text'] as String? ?? '';
-                        final imageUrl = data['imageUrl'] as String?;
-                        final dt = data['timestamp'] != null ? DateTime.tryParse(data['timestamp']) : null;
-                        
-                        return _buildMessageBubble(isMe, text, imageUrl, dt);
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-          
-          // Floating Input Bar
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: _buildInputBar(),
-          ),
+          _buildInputBar(),
         ],
       ),
     );
@@ -150,30 +193,36 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   Widget _buildCustomHeader() {
     return Container(
-      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 8, bottom: 16, left: 8, right: 16),
+      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 8, bottom: 16, left: 16, right: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF16122D).withOpacity(0.8),
-        border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05))),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF333333), size: 20),
             onPressed: () => Navigator.pop(context),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 8),
           Container(
             width: 45,
             height: 45,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFFF14C86).withOpacity(0.3), width: 1.5),
+              color: Colors.grey[100],
               image: _resolveAvatar(widget.targetUserAvatar) != null
                   ? DecorationImage(image: _resolveAvatar(widget.targetUserAvatar)!, fit: BoxFit.cover)
                   : null,
             ),
             child: _resolveAvatar(widget.targetUserAvatar) == null
-                ? const Icon(Icons.person_rounded, color: Colors.white, size: 20)
+                ? const Icon(Icons.person_rounded, color: Colors.grey, size: 20)
                 : null,
           ),
           const SizedBox(width: 12),
@@ -183,31 +232,25 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               children: [
                 Text(
                   widget.targetUserName,
-                  style: GoogleFonts.outfit(
+                  style: GoogleFonts.nunito(
                     fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF333333),
                   ),
                 ),
-                Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(color: Color(0xFF00F5A0), shape: BoxShape.circle),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Online',
-                      style: GoogleFonts.outfit(fontSize: 12, color: const Color(0xFF00F5A0).withOpacity(0.8)),
-                    ),
-                  ],
+                Text(
+                  'Online',
+                  style: GoogleFonts.nunito(
+                    fontSize: 12,
+                    color: const Color(0xFF20D04A),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
           ),
           IconButton(
-            icon: Icon(Icons.more_vert_rounded, color: Colors.white.withOpacity(0.5)),
+            icon: Icon(Icons.more_horiz_rounded, color: Colors.grey[400]),
             onPressed: () {},
           ),
         ],
@@ -215,9 +258,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     );
   }
 
-  Widget _buildMessageBubble(bool isMe, String text, String? imageUrl, DateTime? dt) {
+  Widget _buildMessageBubble(bool isMe, String text, String? imageUrl, String? audioUrl, DateTime? dt) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.only(bottom: 16.0),
       child: Column(
         crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
@@ -226,17 +269,23 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
               margin: const EdgeInsets.only(bottom: 4),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+                ],
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(24),
                 child: Image(image: _resolveAvatar(imageUrl)!, fit: BoxFit.cover),
               ),
             ),
+            
+          if (audioUrl != null && audioUrl.isNotEmpty)
+            _buildAudioBubble(isMe, audioUrl),
+
           if (text.isNotEmpty)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
               constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
               decoration: BoxDecoration(
                 gradient: isMe
@@ -246,21 +295,21 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                         end: Alignment.bottomRight,
                       )
                     : null,
-                color: isMe ? null : Colors.white.withOpacity(0.05),
+                color: isMe ? null : const Color(0xFFF9F9F9),
                 borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(20),
-                  topRight: const Radius.circular(20),
-                  bottomLeft: isMe ? const Radius.circular(20) : Radius.zero,
-                  bottomRight: isMe ? Radius.zero : const Radius.circular(20),
+                  topLeft: const Radius.circular(24),
+                  topRight: const Radius.circular(24),
+                  bottomLeft: isMe ? const Radius.circular(24) : Radius.zero,
+                  bottomRight: isMe ? Radius.zero : const Radius.circular(24),
                 ),
-                border: isMe ? null : Border.all(color: Colors.white.withOpacity(0.05)),
+                border: isMe ? null : Border.all(color: Colors.grey[100]!),
               ),
               child: Text(
                 text,
-                style: GoogleFonts.outfit(
+                style: GoogleFonts.nunito(
                   fontSize: 16,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w400,
+                  color: isMe ? Colors.white : const Color(0xFF333333),
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -269,57 +318,107 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     );
   }
 
+  Widget _buildAudioBubble(bool isMe, String audioUrl) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isMe ? const Color(0xFFF14C86).withOpacity(0.1) : const Color(0xFFF9F9F9),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: isMe ? const Color(0xFFF14C86).withOpacity(0.2) : Colors.grey[100]!),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: Icon(Icons.play_arrow_rounded, color: isMe ? const Color(0xFFF14C86) : Colors.grey[600]),
+            onPressed: () async {
+              // Simulating playback for now as audioUrl is base64 or publicUrl
+              // In production, use _audioPlayer.play(UrlSource(audioUrl))
+            },
+          ),
+          const SizedBox(width: 8),
+          Container(
+            width: 100,
+            height: 2,
+            decoration: BoxDecoration(
+              color: isMe ? const Color(0xFFF14C86).withOpacity(0.3) : Colors.grey[300],
+              borderRadius: BorderRadius.circular(1),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Icon(Icons.mic_none_rounded, size: 16, color: isMe ? const Color(0xFFF14C86) : Colors.grey[400]),
+        ],
+      ),
+    );
+  }
+
   Widget _buildInputBar() {
     return SafeArea(
       child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        height: 60,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(30),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.white.withOpacity(0.1)),
-              ),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.add_rounded, color: Colors.white.withOpacity(0.5)),
-                    onPressed: _pickAndSendImage,
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: _msgController,
-                      style: GoogleFonts.outfit(color: Colors.white),
-                      decoration: InputDecoration(
-                        hintText: 'Message...',
-                        hintStyle: GoogleFonts.outfit(color: Colors.white.withOpacity(0.3)),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                      ),
-                      onSubmitted: (_) => _sendMessage(),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => _sendMessage(),
-                    child: Container(
-                      margin: const EdgeInsets.all(6),
-                      padding: const EdgeInsets.all(10),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF14C86),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.arrow_upward_rounded, color: Colors.white, size: 20),
-                    ),
-                  ),
-                ],
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: Colors.grey[100]!)),
+        ),
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: _pickAndSendImage,
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: const Color(0xFFF9F9F9), borderRadius: BorderRadius.circular(12)),
+                child: Icon(Icons.add_rounded, color: Colors.grey[600], size: 24),
               ),
             ),
-          ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF9F9F9),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Colors.grey[100]!),
+                ),
+                child: TextField(
+                  controller: _msgController,
+                  style: GoogleFonts.nunito(color: const Color(0xFF333333)),
+                  decoration: InputDecoration(
+                    hintText: 'Message...',
+                    hintStyle: GoogleFonts.nunito(color: Colors.grey[400]),
+                    border: InputBorder.none,
+                  ),
+                  onSubmitted: (_) => _sendMessage(),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            GestureDetector(
+              onLongPressStart: (_) => _startRecording(),
+              onLongPressEnd: (_) => _stopAndSendRecording(),
+              onTap: () => _sendMessage(),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _isRecording ? const Color(0xFF20D04A) : const Color(0xFFF14C86),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: (_isRecording ? const Color(0xFF20D04A) : const Color(0xFFF14C86)).withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  _isRecording ? Icons.mic_rounded : (_msgController.text.isEmpty ? Icons.mic_none_rounded : Icons.send_rounded),
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

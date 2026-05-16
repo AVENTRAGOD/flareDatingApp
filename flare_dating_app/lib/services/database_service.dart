@@ -286,44 +286,63 @@ class DatabaseService {
     String receiverEmail,
     String text, {
     String? imageUrl,
+    String? audioUrl,
   }) async {
     try {
       String? finalImageUrl;
+      String? finalAudioUrl;
+
+      // Handle Image Upload
       if (imageUrl != null && imageUrl.startsWith('data:image')) {
         final base64Data = imageUrl.split(',').last;
         final bytes = base64Decode(base64Data);
-        final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
-        await supabase.storage
-            .from('chat_images')
-            .uploadBinary(fileName, bytes);
-        finalImageUrl = supabase.storage
-            .from('chat_images')
-            .getPublicUrl(fileName);
+        final fileName = 'img_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        await supabase.storage.from('chat_images').uploadBinary(fileName, bytes);
+        finalImageUrl = supabase.storage.from('chat_images').getPublicUrl(fileName);
       } else {
         finalImageUrl = imageUrl;
       }
 
+      // Handle Audio Upload
+      if (audioUrl != null && audioUrl.startsWith('data:audio')) {
+        final base64Data = audioUrl.split(',').last;
+        final bytes = base64Decode(base64Data);
+        final fileName = 'audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+        await supabase.storage.from('chat_images').uploadBinary(fileName, bytes);
+        finalAudioUrl = supabase.storage.from('chat_images').getPublicUrl(fileName);
+      } else {
+        finalAudioUrl = audioUrl;
+      }
+
       final chatId = getChatId(senderEmail, receiverEmail);
 
-      // Upsert Chat Info
+      // Upsert Chat Info (Last message preview)
+      String lastMsgPreview = text;
+      if (finalAudioUrl != null) lastMsgPreview = '🎤 Voice message';
+      if (finalImageUrl != null) lastMsgPreview = '📷 Image';
+
       await supabase.from('chats').upsert({
         'id': chatId,
         'participants': [senderEmail, receiverEmail],
-        'last_message': finalImageUrl != null ? '📷 Image' : text,
+        'last_message': lastMsgPreview,
         'last_message_time': DateTime.now().toIso8601String(),
         'last_sender': senderEmail,
       });
 
       // Insert Message
-      await supabase.from('messages').insert({
+      final messageData = {
         'chat_id': chatId,
         'sender_id': senderEmail,
         'receiver_id': receiverEmail,
         'text_content': text,
         'image_url': finalImageUrl,
-      });
+        'audio_url': finalAudioUrl, // Note: Ensure this column exists in Supabase
+      };
+
+      await supabase.from('messages').insert(messageData);
+      print('Message sent successfully to $chatId');
     } catch (e) {
-      print('Send msg error: $e');
+      print('Critical error in sendMessage: $e');
     }
   }
 
@@ -370,6 +389,7 @@ class DatabaseService {
                   'senderId': m['sender_id'],
                   'text': m['text_content'],
                   'imageUrl': m['image_url'],
+                  'audioUrl': m['audio_url'],
                   'timestamp': m['created_at'],
                 },
               )
