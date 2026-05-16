@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -55,7 +56,10 @@ class _UserProfileTabState extends State<UserProfileTab> {
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
     
     if (image != null) {
       setState(() => _isUploading = true);
@@ -224,7 +228,6 @@ class _UserProfileTabState extends State<UserProfileTab> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        backgroundColor: Color(0xFFFDE8F5),
         body: Center(child: CircularProgressIndicator(color: Color(0xFFF14C86))),
       );
     }
@@ -233,207 +236,139 @@ class _UserProfileTabState extends State<UserProfileTab> {
     final lastName = _userProfile?['last_name']?.toString() ?? '';
     final fullName = '$firstName $lastName'.trim();
     final avatarPath = _userProfile?['avatar_path']?.toString() ?? '';
-    
-    ImageProvider? avatarImage;
-    if (avatarPath.startsWith('data:image')) {
-      try {
-        final base64Str = avatarPath.split(',').last;
-        final bytes = base64Decode(base64Str);
-        avatarImage = MemoryImage(bytes);
-      } catch (_) {}
-    } else if (avatarPath.isNotEmpty) {
-      avatarImage = NetworkImage(avatarPath);
-    }
+    final avatarImage = _getAvatarImage(avatarPath);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6EEF6),
       body: SingleChildScrollView(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Cinematic Header
             Container(
-              height: 140,
+              height: 400,
               width: double.infinity,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFFF14C86), Color(0xFFC76CD9)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: _pickImage,
-                        child: Stack(
-                          children: [
-                            Container(
-                              width: 70,
-                              height: 70,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.black87, width: 2),
-                                image: avatarImage != null
-                                    ? DecorationImage(
-                                        image: avatarImage,
-                                        fit: BoxFit.cover,
-                                      )
-                                    : null,
-                                color: const Color(0xFF322369),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Builder(builder: (context) {
+                      return avatarImage != null
+                          ? Image(image: avatarImage, fit: BoxFit.cover)
+                          : Container(
+                              decoration: const BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [Color(0xFF1A1635), Color(0xFF0D0B1F)],
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                ),
                               ),
-                              child: avatarImage == null ? const Icon(Icons.person, color: Colors.white, size: 30) : null,
-                            ),
-                            if (_isUploading)
-                              const Positioned.fill(
-                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-                              ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                                child: const Icon(Icons.camera_alt, size: 14, color: Color(0xFF322369)),
-                              ),
-                            ),
+                              child: Icon(Icons.person_rounded, size: 120, color: Colors.white.withOpacity(0.05)),
+                            );
+                    }),
+                  ),
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withOpacity(0.8),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
-                          fullName.isNotEmpty ? fullName : 'User',
-                          style: GoogleFonts.nunito(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            shadows: [
-                              Shadow(
-                                blurRadius: 4.0,
-                                color: Colors.black.withOpacity(0.3),
-                                offset: const Offset(1.0, 1.0),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 40,
+                    left: 24,
+                    right: 24,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                fullName,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 42,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  letterSpacing: -1,
+                                ),
+                              ),
+                              Text(
+                                widget.currentUserEmail,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 16,
+                                  color: Colors.white.withOpacity(0.5),
+                                ),
                               ),
                             ],
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildStatItem('Likes', _userStats['likes_sent'].toString()),
-                    _buildStatDivider(),
-                    _buildStatItem('Passes', _userStats['passes_sent'].toString()),
-                    _buildStatDivider(),
-                    _buildStatItem('Games', (_userStats['snake_score']! + _userStats['pong_score']!).toString()),
-                  ],
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 32),
-            
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32.0),
-              child: Column(
-                children: [
-                  GestureDetector(
-                    onTap: _editName,
-                    child: _buildDetailedInfoRow(
-                      icon: Icons.person_outline,
-                      title: 'User Name',
-                      value: fullName.isNotEmpty ? fullName : 'User',
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  _buildDetailedInfoRow(
-                    icon: Icons.email_outlined,
-                    title: 'Email',
-                    value: widget.currentUserEmail,
-                  ),
-                  const SizedBox(height: 24),
-                  GestureDetector(
-                    onTap: () => _showComingSoon('Password Reset'),
-                    child: _buildDetailedInfoRow(
-                      icon: Icons.lock_outline,
-                      title: 'Password',
-                      value: 'Reset Password',
-                      valueColor: Colors.grey[600],
+                        GestureDetector(
+                          onTap: _pickImage,
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF14C86),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFF14C86).withOpacity(0.4),
+                                  blurRadius: 15,
+                                  offset: const Offset(0, 5),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 24),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-            
-            const SizedBox(height: 48),
-            
+
+            // Bento Grid Stats
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              padding: const EdgeInsets.all(24.0),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Settings',
-                    style: GoogleFonts.nunito(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      color: const Color(0xFF322369),
-                    ),
+                  Row(
+                    children: [
+                      Expanded(child: _buildBentoStat('Likes', _userStats['likes_sent'].toString(), const Color(0xFFF14C86))),
+                      const SizedBox(width: 16),
+                      Expanded(child: _buildBentoStat('Passes', _userStats['passes_sent'].toString(), const Color(0xFF8B51E5))),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Manage your settings for best app use',
-                    style: GoogleFonts.nunito(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF5E5088),
-                    ),
+                  const SizedBox(height: 16),
+                  _buildBentoStat(
+                    'Game Achievements', 
+                    '${(_userStats['snake_score']! + _userStats['pong_score']!)} Points', 
+                    const Color(0xFFC76CD9),
+                    isWide: true,
                   ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  _buildSettingOption(Icons.lock_person_outlined, 'Privacy Options', onTap: () => _showComingSoon('Privacy Options')),
-                  _buildSettingOption(Icons.notifications_outlined, 'Safety', onTap: () => _showComingSoon('Safety Center')),
-                  _buildSettingOption(Icons.help_outline, 'Help Center', onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const UserGuideScreen()));
-                  }),
-                  _buildSettingOption(Icons.article_outlined, 'Terms & Conditions', onTap: () => _showComingSoon('Terms & Conditions')),
-                  _buildSettingOption(Icons.workspace_premium_outlined, 'Achievements', onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => AchievementsScreen(currentUserEmail: widget.currentUserEmail)));
-                  }),
-                  _buildSettingOption(Icons.sports_esports_outlined, 'Games', onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => GamesScreen(currentUserEmail: widget.currentUserEmail)));
-                  }),
-                  _buildSettingOption(Icons.logout_outlined, 'Log Out', onTap: _logout),
-                  _buildSettingOption(Icons.delete_outline, 'Delete Account', onTap: _confirmDelete),
                   
                   const SizedBox(height: 40),
+                  
+                  // Modern Settings List
+                  _buildSectionTitle('Account Settings'),
+                  const SizedBox(height: 16),
+                  _buildModernSetting(Icons.person_outline_rounded, 'Edit Profile', _editName),
+                  _buildModernSetting(Icons.sports_esports_outlined, 'Game Center', () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => GamesScreen(currentUserEmail: widget.currentUserEmail)));
+                  }),
+                  _buildModernSetting(Icons.help_outline_rounded, 'User Guide', () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const UserGuideScreen()));
+                  }),
+                  _buildModernSetting(Icons.logout_rounded, 'Log Out', _logout, isDestructive: true),
+                  _buildModernSetting(Icons.delete_outline_rounded, 'Delete Account', _confirmDelete, isDestructive: true),
+                  
+                  const SizedBox(height: 100), // Navigation padding
                 ],
               ),
             ),
@@ -443,96 +378,95 @@ class _UserProfileTabState extends State<UserProfileTab> {
     );
   }
 
-  Widget _buildDetailedInfoRow({required IconData icon, required String title, required String value, Color? valueColor}) {
-    return Row(
-      children: [
-        Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: const Color(0xFFCF65D9),
-            borderRadius: BorderRadius.circular(16),
+  ImageProvider? _getAvatarImage(String avatarPath) {
+    if (avatarPath.isEmpty) return null;
+    if (avatarPath.startsWith('data:image')) {
+      try {
+        final base64Str = avatarPath.split(',').last;
+        return MemoryImage(base64Decode(base64Str));
+      } catch (_) {
+        return null;
+      }
+    }
+    return NetworkImage(avatarPath);
+  }
+
+  Widget _buildBentoStat(String label, String value, Color color, {bool isWide = false}) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: GoogleFonts.outfit(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
           ),
-          child: Icon(icon, color: Colors.black, size: 28),
-        ),
-        const SizedBox(width: 16),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: GoogleFonts.nunito(
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-                color: Colors.black,
-              ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: GoogleFonts.outfit(
+              fontSize: 14,
+              color: Colors.white.withOpacity(0.5),
+              fontWeight: FontWeight.w500,
             ),
-            const SizedBox(height: 2),
-            Text(
-              value,
-              style: GoogleFonts.nunito(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: valueColor ?? Colors.grey[600],
-              ),
-            ),
-          ],
-        )
-      ],
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildSettingOption(IconData icon, String title, {required VoidCallback onTap}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24.0),
-      child: GestureDetector(
-        onTap: onTap,
+  Widget _buildSectionTitle(String title) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        title,
+        style: GoogleFonts.outfit(
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernSetting(IconData icon, String title, VoidCallback onTap, {bool isDestructive = false}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.03),
+          borderRadius: BorderRadius.circular(20),
+        ),
         child: Row(
           children: [
-            Icon(icon, color: const Color(0xFF322369), size: 22),
+            Icon(icon, color: isDestructive ? Colors.redAccent : const Color(0xFF8B51E5), size: 22),
             const SizedBox(width: 16),
             Text(
               title,
-              style: GoogleFonts.nunito(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFFC76CD9),
+              style: GoogleFonts.outfit(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: isDestructive ? Colors.redAccent.withOpacity(0.8) : Colors.white.withOpacity(0.9),
               ),
             ),
+            const Spacer(),
+            Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white.withOpacity(0.2)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatItem(String label, String value) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: GoogleFonts.nunito(
-            fontSize: 20,
-            fontWeight: FontWeight.w900,
-            color: const Color(0xFF322369),
-          ),
-        ),
-        Text(
-          label,
-          style: GoogleFonts.nunito(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatDivider() {
-    return Container(
-      height: 30,
-      width: 1,
-      color: Colors.grey[300],
-    );
   }
 }

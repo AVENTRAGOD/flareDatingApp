@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'discover_screen.dart';
 import 'matches_screen.dart';
@@ -35,50 +36,70 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true, // Allows content to flow behind the floating bar
       body: _screens[_currentIndex],
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          height: 70,
+          margin: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(35),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(35),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.1),
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildNavItem(0, Icons.style_rounded),
+                    _buildNavItem(1, Icons.grid_view_rounded),
+                    _buildNavItem(2, Icons.chat_bubble_rounded),
+                    _buildNavItem(3, Icons.person_rounded),
+                  ],
+                ),
+              ),
             ),
-          ],
+          ),
         ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
-          },
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFFC76CD9),
-          unselectedItemColor: Colors.grey,
-          showSelectedLabels: false,
-          showUnselectedLabels: false,
-          elevation: 0,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.style, size: 28), // Cards icon
-              label: 'Discover',
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon) {
+    final isSelected = _currentIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => _currentIndex = index),
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: isSelected
+                  ? const LinearGradient(
+                      colors: [Color(0xFFF14C86), Color(0xFF8B51E5)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : null,
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.grid_view_rounded, size: 28), // Grid icon
-              label: 'Matches',
+            child: Icon(
+              icon,
+              color: isSelected ? Colors.white : Colors.white.withOpacity(0.5),
+              size: 26,
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.chat_bubble_outline, size: 28), // Chat icon
-              label: 'Chats',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline, size: 28), // Profile icon
-              label: 'Profile',
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

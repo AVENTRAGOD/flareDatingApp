@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -125,144 +126,311 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFDE8F5), // Light pinkish background from design
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top App Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Logo
-                  Row(
+      body: Stack(
+        children: [
+          // Background mesh gradient feel
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment.topLeft,
+                  radius: 1.5,
+                  colors: [Color(0xFF1A1635), Color(0xFF0D0B1F)],
+                ),
+              ),
+            ),
+          ),
+          
+          SafeArea(
+            child: Column(
+              children: [
+                // Premium Header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Explore',
+                            style: GoogleFonts.outfit(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: -1,
+                            ),
+                          ),
+                          Text(
+                            'Find your perfect match',
+                            style: GoogleFonts.outfit(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                              color: Colors.white.withOpacity(0.5),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          _buildHeaderIcon(Icons.search_rounded, () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => SearchUsersScreen(currentUserEmail: widget.currentUserEmail)));
+                          }),
+                          const SizedBox(width: 12),
+                          _buildHeaderIcon(Icons.notifications_none_rounded, () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => NotificationsScreen(currentUserEmail: widget.currentUserEmail)));
+                          }),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Swipe Cards Area
+                Expanded(
+                  child: isLoading
+                      ? const Center(child: CircularProgressIndicator(color: Color(0xFFF14C86)))
+                      : users.isEmpty
+                          ? _buildEmptyState()
+                          : Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                              child: CardSwiper(
+                                controller: controller,
+                                cardsCount: users.length,
+                                onSwipe: _onSwipe,
+                                onUndo: _onUndo,
+                                numberOfCardsDisplayed: users.length > 2 ? 3 : users.length,
+                                backCardOffset: const Offset(0, 30),
+                                padding: const EdgeInsets.all(0),
+                                cardBuilder: (context, index, horizontalThresholdPercentage, verticalThresholdPercentage) {
+                                  return _buildCard(users[index]);
+                                },
+                              ),
+                            ),
+                ),
+                const SizedBox(height: 80), // Space for floating nav bar
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderIcon(IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
+        ),
+        child: Icon(icon, color: Colors.white, size: 22),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.03),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.auto_awesome_rounded, size: 64, color: const Color(0xFF8B51E5).withOpacity(0.5)),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'All caught up!',
+            style: GoogleFonts.outfit(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Check back later for more profiles',
+            style: GoogleFonts.outfit(
+              fontSize: 16,
+              color: Colors.white.withOpacity(0.5),
+            ),
+          ),
+          const SizedBox(height: 32),
+          ElevatedButton(
+            onPressed: _loadUsers,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF14C86),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              elevation: 0,
+            ),
+            child: const Text('Refresh Feed', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCard(Map<String, dynamic> user) {
+    final fullName = '${user['first_name'] ?? ''} ${user['last_name'] ?? ''}'.trim();
+    final location = user['location']?.toString() ?? 'Nearby';
+    final avatarPath = user['avatar_path']?.toString() ?? '';
+
+    return GestureDetector(
+      onTap: () => _showUserDetails(context, user),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(32),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.4),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(32),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // User Image
+              Builder(builder: (context) {
+                final imgProvider = _getAvatarImage(avatarPath);
+                return imgProvider != null
+                    ? Image(image: imgProvider, fit: BoxFit.cover)
+                    : Container(
                         decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
                           gradient: LinearGradient(
-                            colors: [Color(0xFFF14C86), Color(0xFF8B51E5)],
+                            colors: [Color(0xFF322369), Color(0xFF16122D)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                         ),
-                        child: const Icon(Icons.favorite, color: Colors.white, size: 20),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Flare',
-                        style: GoogleFonts.nunito(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                          color: const Color(0xFF322369),
-                        ),
-                      ),
-                    ],
+                        child: Icon(Icons.person_rounded, size: 100, color: Colors.white.withOpacity(0.1)),
+                      );
+              }),
+              
+              // Dark gradient overlay
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.1),
+                        Colors.black.withOpacity(0.9),
+                      ],
+                      stops: const [0.0, 0.6, 1.0],
+                    ),
                   ),
-                  
-                  // Action Icons
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.search, color: Color(0xFF5E5088), size: 28),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => SearchUsersScreen(
-                                currentUserEmail: widget.currentUserEmail,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.notifications_none, color: Color(0xFF5E5088), size: 28),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => NotificationsScreen(
-                                currentUserEmail: widget.currentUserEmail,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.tune, color: Color(0xFF5E5088), size: 28),
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Filter options coming soon')),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
-            ),
-            
-            // Swipe Cards Area
-            Expanded(
-              child: isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : users.isEmpty
-                      ? Center(
+              
+              // Info Overlay
+              Positioned(
+                bottom: 24,
+                left: 20,
+                right: 20,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
                           child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(Icons.refresh, size: 64, color: const Color(0xFFC76CD9).withOpacity(0.5)),
-                              const SizedBox(height: 16),
                               Text(
-                                'No more profiles around you.',
-                                style: GoogleFonts.nunito(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF322369),
+                                fullName,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  letterSpacing: -0.5,
                                 ),
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Check back later or expand your interests!',
-                                style: GoogleFonts.nunito(
-                                  fontSize: 16,
-                                  color: const Color(0xFF5E5088),
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                              ElevatedButton(
-                                onPressed: _loadUsers,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFC76CD9),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                ),
-                                child: const Text('Refresh', style: TextStyle(color: Colors.white)),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Icon(Icons.location_on_rounded, size: 14, color: Colors.white.withOpacity(0.6)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    location,
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w400,
+                                      color: Colors.white.withOpacity(0.7),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                        )
-                      : Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                          child: CardSwiper(
-                            controller: controller,
-                            cardsCount: users.length,
-                            onSwipe: _onSwipe,
-                            onUndo: _onUndo,
-                            numberOfCardsDisplayed: users.length > 2 ? 3 : users.length,
-                            backCardOffset: const Offset(0, 20),
-                            padding: const EdgeInsets.all(8.0),
-                            cardBuilder: (context, index, horizontalThresholdPercentage, verticalThresholdPercentage) {
-                              final user = users[index];
-                              return _buildCard(user);
-                            },
-                          ),
                         ),
+                        
+                        // Action Buttons
+                        Row(
+                          children: [
+                            _buildCardAction(Icons.chat_bubble_rounded, Colors.white.withOpacity(0.2), () {
+                              Navigator.push(context, MaterialPageRoute(builder: (context) => ChatRoomScreen(
+                                currentUserEmail: widget.currentUserEmail,
+                                targetUserEmail: user['email']?.toString() ?? '',
+                                targetUserName: fullName,
+                                targetUserAvatar: avatarPath,
+                              )));
+                            }),
+                            const SizedBox(width: 12),
+                            _buildCardAction(Icons.favorite_rounded, const Color(0xFFF14C86), () async {
+                              final targetEmail = user['email']?.toString() ?? '';
+                              await DatabaseService.instance.forceMutualMatch(widget.currentUserEmail, targetEmail);
+                              if (mounted) {
+                                controller.swipe(CardSwiperDirection.right);
+                              }
+                            }, isPrimary: true),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCardAction(IconData icon, Color color, VoidCallback onTap, {bool isPrimary = false}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: isPrimary ? color : color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.1), width: 1.5),
             ),
-            const SizedBox(height: 16),
-          ],
+            child: Icon(icon, color: Colors.white, size: 24),
+          ),
         ),
       ),
     );
@@ -272,29 +440,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     final firstName = user['first_name']?.toString() ?? 'Unknown';
     final lastName = user['last_name']?.toString() ?? '';
     final fullName = '$firstName $lastName'.trim();
-    final location = user['location']?.toString() ?? 'Unknown Location';
+    final location = user['location']?.toString() ?? 'Nearby';
     final avatarPath = user['avatar_path']?.toString() ?? '';
-    
-    // Calculate exact age from ISO dob
-    String age = '';
-    final dobString = user['dob']?.toString() ?? '';
-    if (dobString.isNotEmpty) {
-      try {
-        DateTime dob = DateTime.parse(dobString);
-        DateTime now = DateTime.now();
-        int calcAge = now.year - dob.year;
-        if (now.month < dob.month || (now.month == dob.month && now.day < dob.day)) {
-          calcAge--;
-        }
-        age = ', $calcAge';
-      } catch (e) {
-        // ignore
-      }
-    }
-
-    // Extract interests
-    List<dynamic> rawInterests = user['interests'] ?? [];
-    List<String> interests = rawInterests.map((e) => e.toString()).toList();
+    final interests = List<String>.from(user['interests'] ?? []);
 
     showModalBottomSheet(
       context: context,
@@ -302,146 +450,111 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Container(
-          height: MediaQuery.of(context).size.height * 0.85, // 85% of screen height
+          height: MediaQuery.of(context).size.height * 0.85,
           decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+            color: Color(0xFF16122D),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
           ),
-          child: ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Huge Banner Image
-                  Container(
-                    height: MediaQuery.of(context).size.height * 0.45,
-                    color: Colors.grey[300],
-                    child: Builder(builder: (context) {
-                      final imgProvider = _getAvatarImage(avatarPath);
-                      if (imgProvider != null) {
-                        return Image(image: imgProvider, fit: BoxFit.cover);
-                      }
-                      return Center(child: Icon(Icons.person, size: 100, color: Colors.grey[500]));
-                    }),
-                  ),
-                  
-                  // Details Section
-                  Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Name & Age
-                        Text(
-                          '$fullName$age',
-                          style: GoogleFonts.nunito(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w900,
-                            color: const Color(0xFF322369),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-
-                        // Location
-                        Row(
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Hero Image
+                      Container(
+                        height: 400,
+                        width: double.infinity,
+                        child: Stack(
                           children: [
-                            const Icon(Icons.location_on, color: Color(0xFFC76CD9), size: 20),
-                            const SizedBox(width: 4),
-                            Text(
-                              location,
-                              style: GoogleFonts.nunito(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey[600],
-                              ),
+                            Positioned.fill(
+                              child: Builder(builder: (context) {
+                                final imgProvider = _getAvatarImage(avatarPath);
+                                return imgProvider != null
+                                    ? Image(image: imgProvider, fit: BoxFit.cover)
+                                    : Container(color: Colors.white.withOpacity(0.05));
+                              }),
+                            ),
+                            Positioned(
+                              top: 20,
+                              right: 20,
+                              child: _buildHeaderIcon(Icons.close_rounded, () => Navigator.pop(context)),
                             ),
                           ],
                         ),
-                        
-                        const SizedBox(height: 24),
-                        
-                        // About / Interests
-                        Text(
-                          'Interests',
-                          style: GoogleFonts.nunito(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF322369),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        
-                        if (interests.isNotEmpty)
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: interests.map((interest) {
-                              return Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: const Color(0xFFC76CD9).withOpacity(0.5)),
-                                  borderRadius: BorderRadius.circular(20),
-                                  color: const Color(0xFFFDE8F5),
-                                ),
-                                child: Text(
-                                  interest,
-                                  style: GoogleFonts.nunito(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: const Color(0xFFC76CD9),
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          )
-                        else
-                          Text(
-                            'No interests added yet.',
-                            style: GoogleFonts.nunito(
-                              fontSize: 16,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          
-                        const SizedBox(height: 40),
-                        
-                        // Close Details Button
-                        SizedBox(
-                          width: double.infinity,
-                          height: 56,
-                          child: ElevatedButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFC76CD9),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(28),
-                              ),
-                            ),
-                            child: Text(
-                              'Close Profile',
-                              style: GoogleFonts.nunito(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                      ),
+                      
+                      Padding(
+                        padding: const EdgeInsets.all(32.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              fullName,
+                              style: GoogleFonts.outfit(
+                                fontSize: 36,
+                                fontWeight: FontWeight.w800,
                                 color: Colors.white,
                               ),
                             ),
-                          ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                const Icon(Icons.location_on_rounded, color: Color(0xFFF14C86), size: 18),
+                                const SizedBox(width: 4),
+                                Text(
+                                  location,
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 18,
+                                    color: Colors.white.withOpacity(0.6),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 32),
+                            Text(
+                              'Interests',
+                              style: GoogleFonts.outfit(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Wrap(
+                              spacing: 10,
+                              runSpacing: 10,
+                              children: interests.map((i) => Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF14C86).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: const Color(0xFFF14C86).withOpacity(0.3)),
+                                ),
+                                child: Text(
+                                  i,
+                                  style: GoogleFonts.outfit(
+                                    color: const Color(0xFFF14C86),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              )).toList(),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 20),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         );
       },
     );
   }
 
-  /// Returns the correct ImageProvider for any avatar (base64 or network URL)
   ImageProvider? _getAvatarImage(String avatarPath) {
     if (avatarPath.isEmpty) return null;
     if (avatarPath.startsWith('data:image')) {
@@ -453,223 +566,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       }
     }
     return NetworkImage(avatarPath);
-  }
-
-  Widget _buildCard(Map<String, dynamic> user) {
-    final firstName = user['first_name']?.toString() ?? 'Unknown';
-    final lastName = user['last_name']?.toString() ?? '';
-    final fullName = '$firstName $lastName'.trim();
-    final location = user['location']?.toString() ?? 'Unknown Location';
-    final avatarPath = user['avatar_path']?.toString() ?? '';
-
-    return GestureDetector(
-      onTap: () => _showUserDetails(context, user),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              spreadRadius: 2,
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // User Image (supports base64 and network URLs)
-              Builder(builder: (context) {
-                final imgProvider = _getAvatarImage(avatarPath);
-                if (imgProvider != null) {
-                  return Image(
-                    image: imgProvider,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      color: Colors.grey[300],
-                      child: Center(child: Icon(Icons.person, size: 80, color: Colors.grey[600])),
-                    ),
-                  );
-                }
-                return Container(
-                  color: const Color(0xFF6C3FC7),
-                  child: Center(child: Icon(Icons.person, size: 80, color: Colors.white.withOpacity(0.5))),
-                );
-              }),
-              
-              // Gradient overlay for text readability
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withOpacity(0.8),
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    stops: const [0.5, 1.0],
-                  ),
-                ),
-              ),
-              
-              // User Details Overlay
-              Positioned(
-                bottom: 24,
-                left: 20,
-                right: 20,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        // Avatar circle (bottom-left of card)
-                        CircleAvatar(
-                          radius: 30,
-                          backgroundColor: const Color(0xFF8B51E5),
-                          backgroundImage: _getAvatarImage(avatarPath),
-                          child: _getAvatarImage(avatarPath) == null
-                            ? Text(
-                                fullName.isNotEmpty ? fullName[0].toUpperCase() : '?',
-                                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-                              )
-                            : null,
-                        ),
-                        const SizedBox(width: 16),
-                        
-                        // Name and Location
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                fullName,
-                                style: GoogleFonts.nunito(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.white,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                location,
-                                style: GoogleFonts.nunito(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.normal,
-                                  color: Colors.white.withOpacity(0.8),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        
-                        // Heart / Instant Match Button
-                        GestureDetector(
-                          onTap: () async {
-                            final targetEmail = user['email']?.toString() ?? '';
-                            await DatabaseService.instance.forceMutualMatch(widget.currentUserEmail, targetEmail);
-                            
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Mutual Match! 💖'),
-                                  backgroundColor: Color(0xFFC76CD9),
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
-                              // Trigger swipe right to move to the next card
-                              controller.swipe(CardSwiperDirection.right);
-                            }
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF14C86).withOpacity(0.9),
-                              border: Border.all(color: Colors.white, width: 2),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: const Icon(
-                              Icons.favorite,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-
-                        // Message Button
-                        GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ChatRoomScreen(
-                                currentUserEmail: widget.currentUserEmail,
-                                targetUserEmail: user['email']?.toString() ?? '',
-                                targetUserName: fullName,
-                                targetUserAvatar: avatarPath,
-                              ),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.white, width: 2),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Icon(
-                            Icons.chat_bubble_outline,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                        ),
-                      ),
-                      ],
-                    ),
-                    
-                    const SizedBox(height: 20),
-                    
-                    // Simple dots indicator mimic
-                    Row(
-                      children: List.generate(5, (index) {
-                        return Container(
-                          margin: const EdgeInsets.only(right: 6),
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: index == 0 ? Colors.white : Colors.white.withOpacity(0.3),
-                          ),
-                        );
-                      }),
-                    )
-                  ],
-                ),
-              ),
-              
-              // Bug/Report Icon (Top right)
-              Positioned(
-                top: 20,
-                right: 20,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.3),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.bug_report, color: Colors.white, size: 20),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   bool _onSwipe(
