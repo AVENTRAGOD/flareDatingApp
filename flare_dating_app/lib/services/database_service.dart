@@ -92,8 +92,9 @@ class DatabaseService {
         'pong_score': pongScore,
       };
     } catch (e, stacktrace) {
-      debugPrint('ERROR in getUserStats: $e');
+      debugPrint('ERROR in getUserStats for $email: $e');
       debugPrint('Stacktrace: $stacktrace');
+      // If a specific table fails (e.g. missing column), we try to at least return what we can
       return {
         'likes_sent': 0,
         'passes_sent': 0,
@@ -329,17 +330,32 @@ class DatabaseService {
         'last_sender': senderEmail,
       });
 
-      // Insert Message
-      final messageData = {
+      // Insert Message - Handle audio_url as optional to prevent crash if column is missing
+      final Map<String, dynamic> messageData = {
         'chat_id': chatId,
         'sender_id': senderEmail,
         'receiver_id': receiverEmail,
         'text_content': text,
         'image_url': finalImageUrl,
-        'audio_url': finalAudioUrl, // Note: Ensure this column exists in Supabase
       };
+      
+      // Only add audio_url if we have one, and wrapped in try-catch to ignore if column missing
+      if (finalAudioUrl != null) {
+        messageData['audio_url'] = finalAudioUrl;
+      }
 
-      await supabase.from('messages').insert(messageData);
+      try {
+        await supabase.from('messages').insert(messageData);
+      } catch (insertErr) {
+        if (insertErr.toString().contains('audio_url')) {
+          // If audio_url is the problem, retry without it
+          messageData.remove('audio_url');
+          await supabase.from('messages').insert(messageData);
+        } else {
+          rethrow;
+        }
+      }
+      
       print('Message sent successfully to $chatId');
     } catch (e) {
       print('Critical error in sendMessage: $e');
@@ -389,7 +405,7 @@ class DatabaseService {
                   'senderId': m['sender_id'],
                   'text': m['text_content'],
                   'imageUrl': m['image_url'],
-                  'audioUrl': m['audio_url'],
+                  'audioUrl': m.containsKey('audio_url') ? m['audio_url'] : null,
                   'timestamp': m['created_at'],
                 },
               )

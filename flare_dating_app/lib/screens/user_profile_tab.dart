@@ -259,8 +259,11 @@ class _UserProfileTabState extends State<UserProfileTab> {
                     _buildMinimalTile(Icons.privacy_tip_rounded, 'Privacy Options', 'Manage your privacy', onTap: () => _showComingSoon('Privacy')),
                     _buildMinimalTile(Icons.security_rounded, 'Safety', 'Safety guidelines', onTap: () => _showComingSoon('Safety')),
                     _buildMinimalTile(Icons.help_rounded, 'Help Center', 'Get help and support', onTap: () => _showComingSoon('Help Center')),
-                    _buildMinimalTile(Icons.sports_esports_rounded, 'Game Center', 'Your achievements', onTap: () {
+                    _buildMinimalTile(Icons.sports_esports_rounded, 'Game Center', 'Play games and compete', onTap: () {
                       Navigator.push(context, MaterialPageRoute(builder: (context) => GamesScreen(currentUserEmail: widget.currentUserEmail)));
+                    }),
+                    _buildMinimalTile(Icons.military_tech_rounded, 'Achievements', 'View your progress', onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => AchievementsScreen(currentUserEmail: widget.currentUserEmail)));
                     }),
                     _buildMinimalTile(Icons.info_rounded, 'User Guide', 'How to use Flare', onTap: () {
                       Navigator.push(context, MaterialPageRoute(builder: (context) => const UserGuideScreen()));

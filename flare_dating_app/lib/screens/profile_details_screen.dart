@@ -210,7 +210,11 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
             ),
             contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
           ),
-          style: GoogleFonts.nunito(fontWeight: FontWeight.w600, fontSize: 16, color: const Color(0xFF322369)),
+          style: GoogleFonts.nunito(
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+            color: const Color(0xFF322369),
+          ),
         ),
         const SizedBox(height: 16),
       ],

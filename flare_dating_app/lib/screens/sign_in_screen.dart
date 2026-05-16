@@ -134,6 +134,7 @@ class _SignInScreenState extends State<SignInScreen> {
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     onSubmitted: (_) => _signIn(),
+                    style: GoogleFonts.nunito(color: Colors.black87),
                     decoration: InputDecoration(
                       hintText: 'Email Address',
                       hintStyle: GoogleFonts.nunito(color: Colors.grey[400]),

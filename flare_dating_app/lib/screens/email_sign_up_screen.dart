@@ -144,7 +144,11 @@ class _EmailSignUpScreenState extends State<EmailSignUpScreen> {
             contentPadding: const EdgeInsets.symmetric(vertical: 16),
             errorStyle: const TextStyle(height: 0.8),
           ),
-          style: GoogleFonts.nunito(fontWeight: FontWeight.w600, fontSize: 16),
+          style: GoogleFonts.nunito(
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+            color: Colors.black87,
+          ),
         ),
         const SizedBox(height: 16),
       ],
