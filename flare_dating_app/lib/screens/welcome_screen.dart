@@ -195,51 +195,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     ],
                   ),
                   
-                  const SizedBox(height: 16),
-                  
-                  // Premium Direct Access Button (Developer Bypass)
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const MainContainerScreen(currentUserEmail: 'nisalsayuranga0710@gmail.com'),
-                        ),
-                        (route) => false,
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(28),
-                        border: Border.all(color: const Color(0xFFD45EBC), width: 1.5),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFD45EBC).withOpacity(0.2),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.bolt, color: Color(0xFFD45EBC), size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Developer Direct Access',
-                            style: GoogleFonts.nunito(
-                              fontSize: 14,
-                              color: const Color(0xFFD45EBC),
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  
                   const SizedBox(height: 32),
                 ],
               ),
