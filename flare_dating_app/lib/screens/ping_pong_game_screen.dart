@@ -236,7 +236,8 @@ class _PingPongGameScreenState extends State<PingPongGameScreen> {
                 ],
               ),
             ),
-          ],
+          ),
+        ],
         ),
       ),
     );
