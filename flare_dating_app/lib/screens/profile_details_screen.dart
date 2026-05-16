@@ -26,6 +26,9 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
   String? _selectedGender;
   final List<String> _genders = ['Male', 'Female', 'Other'];
 
+  String? _preferredGender;
+  final List<String> _preferredGenders = ['Men', 'Women', 'Everyone'];
+
   Uint8List? _avatarBytes;
   final ImagePicker _picker = ImagePicker();
 
@@ -82,6 +85,13 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
         return;
       }
 
+      if (_preferredGender == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select who you are interested in')),
+        );
+        return;
+      }
+
       // Show loading indicator
       showDialog(
         context: context,
@@ -111,6 +121,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
           'last_name': _lastNameController.text,
           'dob': _selectedDate!.toIso8601String(),
           'gender': _selectedGender,
+          'preferred_gender': _preferredGender,
           'avatar_path': avatarUrl,
         };
 
@@ -409,6 +420,58 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                               onChanged: (newValue) {
                                 setState(() {
                                   _selectedGender = newValue;
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        Text(
+                          'Interested In',
+                          style: GoogleFonts.nunito(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            color: const Color(0xFF322369),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.85),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: Colors.grey, width: 1.5),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              isExpanded: true,
+                              value: _preferredGender,
+                              hint: Text(
+                                'Select preference',
+                                style: GoogleFonts.nunito(
+                                  color: Colors.grey[500],
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF5E5088)),
+                              items: _preferredGenders.map((String value) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(
+                                    value,
+                                    style: GoogleFonts.nunito(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: const Color(0xFF322369),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (newValue) {
+                                setState(() {
+                                  _preferredGender = newValue;
                                 });
                               },
                             ),

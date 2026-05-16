@@ -27,6 +27,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   List<Map<String, dynamic>> allValidUsers = []; // Cache of users before search filtering
   List<String> myInterests = [];
   String myAvatar = '';
+  String _myPreferredGender = 'Everyone';
 
   @override
   void initState() {
@@ -43,6 +44,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           myInterests = List<String>.from(myProfile['interests']);
         }
         myAvatar = myProfile['avatar_path']?.toString() ?? '';
+        _myPreferredGender = myProfile['preferred_gender']?.toString() ?? 'Everyone';
       }
 
       final fetchedUsers = await DatabaseService.instance.getAllUsers()
@@ -57,6 +59,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           
           final first = user['first_name']?.toString() ?? '';
           final date = user['dob']?.toString() ?? '';
+          final gender = user['gender']?.toString() ?? 'Unknown';
+
+          // Preference filter
+          if (_myPreferredGender == 'Men' && gender != 'Male') return false;
+          if (_myPreferredGender == 'Women' && gender != 'Female') return false;
+
           return first.isNotEmpty && date.isNotEmpty;
         }).toList();
 
@@ -559,6 +567,40 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                           ),
                         ),
                         
+                        // Heart / Instant Match Button
+                        GestureDetector(
+                          onTap: () async {
+                            final targetEmail = user['email']?.toString() ?? '';
+                            await DatabaseService.instance.forceMutualMatch(widget.currentUserEmail, targetEmail);
+                            
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Mutual Match! 💖'),
+                                  backgroundColor: Color(0xFFC76CD9),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                              // Trigger swipe right to move to the next card
+                              controller.swipe(CardSwiperDirection.right);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF14C86).withOpacity(0.9),
+                              border: Border.all(color: Colors.white, width: 2),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Icon(
+                              Icons.favorite,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+
                         // Message Button
                         GestureDetector(
                         onTap: () {

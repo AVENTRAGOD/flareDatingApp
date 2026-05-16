@@ -55,9 +55,11 @@ class DatabaseService {
 
   Future<Map<String, int>> getUserStats(String email) async {
     try {
-      final likesRes = await supabase.from('interactions').select('id').eq('from_email', email).eq('is_like', true);
-      final passesRes = await supabase.from('interactions').select('id').eq('from_email', email).eq('is_like', false);
-      final msgRes = await supabase.from('messages').select('id').eq('sender_id', email);
+      final likesRes = await supabase.from('interactions').select('from_email').eq('from_email', email).eq('is_like', true);
+      final passesRes = await supabase.from('interactions').select('from_email').eq('from_email', email).eq('is_like', false);
+      
+      // Messages might not have an 'id' column, so we select 'sender_id'
+      final msgRes = await supabase.from('messages').select('sender_id').eq('sender_id', email);
       
       final userDoc = await getUserProfile(email);
       int snakeScore = userDoc?['snake_high_score'] ?? 0;
@@ -70,7 +72,9 @@ class DatabaseService {
         'snake_score': snakeScore,
         'pong_score': pongScore,
       };
-    } catch (e) {
+    } catch (e, stacktrace) {
+      debugPrint('ERROR in getUserStats: $e');
+      debugPrint('Stacktrace: $stacktrace');
       return {'likes_sent': 0, 'passes_sent': 0, 'messages_sent': 0, 'snake_score': 0, 'pong_score': 0};
     }
   }
@@ -131,6 +135,27 @@ class DatabaseService {
       });
     } catch (e) {
       print('Error recording interaction: $e');
+    }
+  }
+
+  Future<void> forceMutualMatch(String myEmail, String targetEmail) async {
+    try {
+      await supabase.from('interactions').upsert([
+        {
+          'id': '${myEmail}_$targetEmail',
+          'from_email': myEmail,
+          'to_email': targetEmail,
+          'is_like': true,
+        },
+        {
+          'id': '${targetEmail}_$myEmail',
+          'from_email': targetEmail,
+          'to_email': myEmail,
+          'is_like': true,
+        }
+      ]);
+    } catch (e) {
+      debugPrint('Error forcing mutual match: $e');
     }
   }
 
