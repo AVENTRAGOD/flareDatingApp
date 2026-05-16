@@ -1,7 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -59,12 +56,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       );
 
       // Encode image as base64 and embed inline — no Firebase Storage needed
-      Uint8List bytes;
-      if (kIsWeb) {
-        bytes = await image.readAsBytes();
-      } else {
-        bytes = await File(image.path).readAsBytes();
-      }
+      final bytes = await image.readAsBytes();
       final base64String = 'data:image/jpeg;base64,${base64Encode(bytes)}';
       _sendMessage(imageUrl: base64String);
     } catch (e) {

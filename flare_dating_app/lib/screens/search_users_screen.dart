@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../services/database_service.dart';
 import 'chat_room_screen.dart';
-import 'discover_screen.dart'; // Only if we needed _showUserDetails, but we'll build a simplified card
+// Only if we needed _showUserDetails, but we'll build a simplified card
 
 class SearchUsersScreen extends StatefulWidget {
   final String currentUserEmail;

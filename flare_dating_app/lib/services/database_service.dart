@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:typed_data';
 import 'dart:convert';
 import 'dart:async';
@@ -106,16 +105,12 @@ class DatabaseService {
     return List<Map<String, dynamic>>.from(res);
   }
 
-  Future<String?> uploadProfilePicture(String email, {File? file, Uint8List? bytes}) async {
+  Future<String?> uploadProfilePicture(String email, {Uint8List? bytes}) async {
     try {
-      Uint8List? imageBytes = bytes;
-      if (imageBytes == null && file != null) {
-        imageBytes = await file.readAsBytes();
-      }
-      if (imageBytes == null) return null;
+      if (bytes == null) return null;
       
       final fileName = '$email-${DateTime.now().millisecondsSinceEpoch}.jpg';
-      await supabase.storage.from('avatars').uploadBinary(fileName, imageBytes);
+      await supabase.storage.from('avatars').uploadBinary(fileName, bytes);
       final publicUrl = supabase.storage.from('avatars').getPublicUrl(fileName);
       
       await updateUserProfile(email, {'avatar_path': publicUrl});
@@ -125,7 +120,6 @@ class DatabaseService {
       return null;
     }
   }
-
   Future<void> recordInteraction(String myEmail, String targetEmail, bool isLike) async {
     try {
       final interactionId = '${myEmail}_$targetEmail';

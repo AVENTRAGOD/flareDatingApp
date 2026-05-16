@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:device_preview/device_preview.dart';
+import 'package:flutter/foundation.dart';
 
 import 'screens/onboarding_screen.dart';
 import 'services/database_service.dart';
@@ -15,7 +17,12 @@ void main() async {
   // Fire and forget dummy tester profiles so it doesn't block the UI
   DatabaseService.instance.seedDummyUsers();
 
-  runApp(const FlareDatingApp());
+  runApp(
+    DevicePreview(
+      enabled: !kReleaseMode,
+      builder: (context) => const FlareDatingApp(),
+    ),
+  );
 }
 
 class FlareDatingApp extends StatelessWidget {
@@ -24,6 +31,9 @@ class FlareDatingApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      useInheritedMediaQuery: true,
+      locale: DevicePreview.locale(context),
+      builder: DevicePreview.appBuilder,
       title: 'Flare',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

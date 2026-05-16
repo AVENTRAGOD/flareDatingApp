@@ -1,5 +1,3 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -28,25 +26,16 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
   String? _selectedGender;
   final List<String> _genders = ['Male', 'Female', 'Other'];
 
-  File? _avatarImage;
   Uint8List? _avatarBytes;
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _pickImage() async {
     final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
     if (pickedFile != null) {
-      if (kIsWeb) {
-        final bytes = await pickedFile.readAsBytes();
-        setState(() {
-          _avatarBytes = bytes;
-          _avatarImage = null; // Do not use File path on Web
-        });
-      } else {
-        setState(() {
-          _avatarImage = File(pickedFile.path);
-          _avatarBytes = null;
-        });
-      }
+      final bytes = await pickedFile.readAsBytes();
+      setState(() {
+        _avatarBytes = bytes;
+      });
     }
   }
 
@@ -102,11 +91,10 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
 
       String avatarUrl = '';
       try {
-        if (_avatarImage != null || _avatarBytes != null) {
+        if (_avatarBytes != null) {
           try {
             final url = await DatabaseService.instance.uploadProfilePicture(
               widget.email,
-              file: _avatarImage,
               bytes: _avatarBytes,
             ).timeout(const Duration(seconds: 15)); // Reduced slightly to not block UI forever
             
@@ -286,8 +274,8 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                             backgroundColor: Colors.white,
                             backgroundImage: _avatarBytes != null 
                                 ? MemoryImage(_avatarBytes!) 
-                                : (_avatarImage != null ? FileImage(_avatarImage!) : null) as ImageProvider?,
-                            child: (_avatarImage == null && _avatarBytes == null)
+                                : null,
+                            child: (_avatarBytes == null)
                               ? const Icon(Icons.person, size: 60, color: Color(0xFFD3C5D6))
                               : null,
                           ),

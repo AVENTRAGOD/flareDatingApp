@@ -274,8 +274,8 @@ class _SnakeGameScreenState extends State<SnakeGameScreen> {
                           );
                         } else if (foodPosition == index) {
                           return Container(
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFF14C86), // Flare pink apple
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF14C86), // Flare pink apple
                               // Blocky apple too
                               border: Border.all(color: Colors.black, width: 2),
                             ),
