@@ -15,34 +15,18 @@ class MatchesScreen extends StatefulWidget {
 }
 
 class _MatchesScreenState extends State<MatchesScreen> {
-  List<Map<String, dynamic>> _likedUsers = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchMatches();
-  }
-
-  Future<void> _fetchMatches() async {
-    setState(() => _isLoading = true);
-    try {
-      final likes = await DatabaseService.instance.getLikedUsers(widget.currentUserEmail);
-      setState(() {
-        _likedUsers = likes;
-        _isLoading = false;
-      });
-    } catch (e) {
-      debugPrint('Error fetching matches: $e');
-      setState(() => _isLoading = false);
-    }
+    // Start showing loading, but StreamBuilder handles the data
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) setState(() => _isLoading = false);
+    });
   }
 
   void _removeMatch(String targetEmail) async {
-    // Optimistic UI update
-    setState(() {
-      _likedUsers.removeWhere((user) => user['email'] == targetEmail);
-    });
     await DatabaseService.instance.removeInteraction(widget.currentUserEmail, targetEmail);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -104,32 +88,47 @@ class _MatchesScreenState extends State<MatchesScreen> {
             
             // Grid View
             Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator(color: Color(0xFFF14C86)))
-                  : _likedUsers.isEmpty
-                      ? Center(
-                          child: Text(
-                            'No matches yet. Go swipe right!',
-                            style: GoogleFonts.nunito(
-                              fontSize: 16,
-                              color: Colors.grey[400],
-                            ),
-                          ),
-                        )
-                      : GridView.builder(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 0.65, 
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                          ),
-                          itemCount: _likedUsers.length,
-                          itemBuilder: (context, index) {
-                            final user = _likedUsers[index];
-                            return _buildMatchCard(user);
-                          },
+              child: StreamBuilder<List<Map<String, dynamic>>>(
+                stream: DatabaseService.instance.getMutualMatchesStream(widget.currentUserEmail),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting && _isLoading) {
+                    return const Center(child: CircularProgressIndicator(color: Color(0xFFF14C86)));
+                  }
+                  
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+
+                  final matches = snapshot.data ?? [];
+                  
+                  if (matches.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'No matches yet. Click the heart to match!',
+                        style: GoogleFonts.nunito(
+                          fontSize: 16,
+                          color: Colors.grey[400],
                         ),
+                      ),
+                    );
+                  }
+
+                  return GridView.builder(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 0.65, 
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                    ),
+                    itemCount: matches.length,
+                    itemBuilder: (context, index) {
+                      final user = matches[index];
+                      return _buildMatchCard(user);
+                    },
+                  );
+                },
+              ),
             ),
           ],
         ),

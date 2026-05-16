@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/database_service.dart';
+import '../services/achievement_service.dart';
 
 class PingPongGameScreen extends StatefulWidget {
   final String currentUserEmail;
@@ -45,6 +46,8 @@ class _PingPongGameScreenState extends State<PingPongGameScreen> {
 
   void _updateBall() {
     setState(() {
+      double prevBallY = ballY;
+      
       // Move ball
       ballX += ballXDirection;
       ballY += ballYDirection;
@@ -64,15 +67,20 @@ class _PingPongGameScreenState extends State<PingPongGameScreen> {
         ballYDirection = ballYDirection.abs();
       }
 
-      // Check paddle collision (bottom)
-      if (ballY >= 0.9 && ballY <= 0.95 && ballYDirection > 0) {
-        if (ballX >= paddleX - (paddleWidth / 2) - 0.05 && ballX <= paddleX + (paddleWidth / 2) + 0.05) {
-          ballY = 0.9;
+      // Robust Paddle Collision (checks if ball crossed the paddle line)
+      const double paddleLine = 0.9;
+      if (prevBallY <= paddleLine && ballY >= paddleLine && ballYDirection > 0) {
+        // Check if ball is within paddle width
+        if (ballX >= paddleX - (paddleWidth / 2) - 0.08 && ballX <= paddleX + (paddleWidth / 2) + 0.08) {
+          ballY = paddleLine;
           ballYDirection = -ballYDirection.abs();
           score++;
-          // Slightly increase speed as score goes up
-          ballXDirection *= 1.05;
-          ballYDirection *= 1.05;
+          
+          // Increase speed but with a cap
+          if (ballYDirection.abs() < 0.06) {
+            ballXDirection *= 1.05;
+            ballYDirection *= 1.05;
+          }
         }
       } else if (ballY >= 1.1) {
         _gameOver();
@@ -86,6 +94,7 @@ class _PingPongGameScreenState extends State<PingPongGameScreen> {
     
     if (score > 0) {
       DatabaseService.instance.updatePongHighScore(widget.currentUserEmail, score);
+      AchievementService.instance.checkAndNotify(widget.currentUserEmail, context);
     }
 
     _showGameOverDialog();

@@ -399,6 +399,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                             child: DropdownButton<String>(
                               isExpanded: true,
                               value: _selectedGender,
+                              dropdownColor: Colors.white,
                               hint: Text(
                                 'Select option',
                                 style: GoogleFonts.nunito(
@@ -451,6 +452,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                             child: DropdownButton<String>(
                               isExpanded: true,
                               value: _preferredGender,
+                              dropdownColor: Colors.white,
                               hint: Text(
                                 'Select preference',
                                 style: GoogleFonts.nunito(

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/database_service.dart';
+import '../services/achievement_service.dart';
 
 class SnakeGameScreen extends StatefulWidget {
   final String currentUserEmail;
@@ -122,6 +123,7 @@ class _SnakeGameScreenState extends State<SnakeGameScreen> {
     // Update database seamlessly
     if (score > 0) {
       DatabaseService.instance.updateSnakeHighScore(widget.currentUserEmail, score);
+      AchievementService.instance.checkAndNotify(widget.currentUserEmail, context);
     }
 
     _showGameOverDialog();

@@ -16,8 +16,8 @@ void main() async {
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvbGV5emtvbm51eGxsdnNxb2hpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NTUwMTAsImV4cCI6MjA5MTIzMTAxMH0.U50YJdumRR2vbbHcw06SZYXtxcidq00CHhFmk-8x2qs',
   );
 
-  // Seed dummy data
-  DatabaseService.instance.seedDummyUsers();
+  // Clean up dummy data (run once to clear, then you can comment it out)
+  // await DatabaseService.instance.clearDummyUsers();
 
   // Check for session
   final prefs = await SharedPreferences.getInstance();

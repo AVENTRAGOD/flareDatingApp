@@ -4,6 +4,7 @@ import 'discover_screen.dart';
 import 'matches_screen.dart';
 import 'chats_list_screen.dart';
 import 'user_profile_tab.dart';
+import '../services/database_service.dart';
 
 class MainContainerScreen extends StatefulWidget {
   final String currentUserEmail;
@@ -31,6 +32,8 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
       ChatsListScreen(currentUserEmail: widget.currentUserEmail), 
       UserProfileTab(currentUserEmail: widget.currentUserEmail),
     ];
+    // Clean up tester accounts and fake scores on start
+    DatabaseService.instance.clearDummyUsers();
   }
 
   @override

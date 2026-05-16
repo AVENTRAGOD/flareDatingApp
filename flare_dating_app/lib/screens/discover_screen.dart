@@ -9,6 +9,7 @@ import 'notifications_screen.dart';
 import 'chat_room_screen.dart';
 import 'match_screen.dart';
 import '../services/database_service.dart';
+import '../services/achievement_service.dart';
 
 class DiscoverScreen extends StatefulWidget {
   final String currentUserEmail;
@@ -432,6 +433,18 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                                       targetEmail,
                                     );
                                 if (mounted) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => MatchScreen(
+                                        currentUserEmail: widget.currentUserEmail,
+                                        targetUserEmail: targetEmail,
+                                        targetUserName: fullName,
+                                        targetUserAvatar: avatarPath,
+                                        currentUserAvatar: myAvatar,
+                                      ),
+                                    ),
+                                  );
                                   controller.swipe(CardSwiperDirection.right);
                                 }
                               },
@@ -662,35 +675,21 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       if (direction == CardSwiperDirection.right) {
         DatabaseService.instance.recordInteraction(widget.currentUserEmail, targetUserEmail, true);
         
-        // Asynchronously check for match and show celebration
-        DatabaseService.instance.checkMutualMatch(widget.currentUserEmail, targetUserEmail).then((isMutual) {
-          if (isMutual && mounted) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => MatchScreen(
-                  currentUserEmail: widget.currentUserEmail,
-                  targetUserEmail: targetUserEmail,
-                  targetUserName: targetUserName,
-                  targetUserAvatar: targetUserAvatar,
-                  currentUserAvatar: myAvatar,
-                ),
-              ),
-            );
-          } else if (mounted) {
-            // Unmatched like
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Liked!'),
-                duration: Duration(milliseconds: 1000),
-                backgroundColor: Color(0xFFC76CD9),
-              ),
-            );
-          }
-        });
-        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Liked!'),
+              duration: Duration(milliseconds: 1000),
+              backgroundColor: Color(0xFFC76CD9),
+            ),
+          );
+          // Check for achievements
+          AchievementService.instance.checkAndNotify(widget.currentUserEmail, context);
+        }
       } else if (direction == CardSwiperDirection.left) {
         DatabaseService.instance.recordInteraction(widget.currentUserEmail, targetUserEmail, false);
+        // Check for achievements (passes also count)
+        AchievementService.instance.checkAndNotify(widget.currentUserEmail, context);
       }
     }
     return true;

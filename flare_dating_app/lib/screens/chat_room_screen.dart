@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'dart:io';
 import '../services/database_service.dart';
+import '../services/achievement_service.dart';
 
 class ChatRoomScreen extends StatefulWidget {
   final String currentUserEmail;
@@ -41,10 +42,16 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   // Audio Playback
   final AudioPlayer _audioPlayer = AudioPlayer();
 
+  // Optimistic UI
+  final List<Map<String, dynamic>> _pendingMessages = [];
+
   @override
   void initState() {
     super.initState();
     _chatId = DatabaseService.instance.getChatId(widget.currentUserEmail, widget.targetUserEmail);
+    _msgController.addListener(() {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -59,14 +66,43 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     final text = _msgController.text.trim();
     if (text.isEmpty && imageUrl == null && audioUrl == null) return;
 
-    _msgController.clear();
-    await DatabaseService.instance.sendMessage(
-      widget.currentUserEmail,
-      widget.targetUserEmail,
-      text,
-      imageUrl: imageUrl,
-      audioUrl: audioUrl,
-    );
+    final tempId = DateTime.now().millisecondsSinceEpoch.toString();
+    final pendingMsg = {
+      'id': tempId,
+      'senderId': widget.currentUserEmail,
+      'text': text,
+      'imageUrl': imageUrl,
+      'audioUrl': audioUrl,
+      'timestamp': DateTime.now().toIso8601String(),
+      'isPending': true,
+    };
+
+    setState(() {
+      _pendingMessages.insert(0, pendingMsg);
+      _msgController.clear();
+    });
+
+    try {
+      await DatabaseService.instance.sendMessage(
+        widget.currentUserEmail,
+        widget.targetUserEmail,
+        text,
+        imageUrl: imageUrl,
+        audioUrl: audioUrl,
+      );
+      
+      // We don't remove from _pendingMessages immediately; 
+      // the StreamBuilder will handle the "real" message arrival.
+      
+      if (mounted) {
+        AchievementService.instance.checkAndNotify(widget.currentUserEmail, context);
+      }
+    } catch (e) {
+      debugPrint('Error sending message: $e');
+      setState(() {
+        _pendingMessages.removeWhere((m) => m['id'] == tempId);
+      });
+    }
   }
 
   Future<void> _pickAndSendImage() async {
@@ -166,19 +202,33 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 }
 
                 final docs = snapshot.data!;
+                
+                // Merge pending messages with confirmed ones, avoiding duplicates
+                final confirmedTexts = docs.map((d) => d['text']).toSet();
+                final confirmedImages = docs.map((d) => d['imageUrl']).toSet();
+                
+                final displayPending = _pendingMessages.where((p) {
+                  if (p['text'] != null && p['text'].isNotEmpty) return !confirmedTexts.contains(p['text']);
+                  if (p['imageUrl'] != null) return !confirmedImages.contains(p['imageUrl']);
+                  return true;
+                }).toList();
+
+                final allMessages = [...displayPending, ...docs];
+
                 return ListView.builder(
                   reverse: true,
                   padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
-                  itemCount: docs.length,
+                  itemCount: allMessages.length,
                   itemBuilder: (context, index) {
-                    final data = docs[index];
+                    final data = allMessages[index];
                     final isMe = data['senderId'] == widget.currentUserEmail;
                     final text = data['text'] as String? ?? '';
                     final imageUrl = data['imageUrl'] as String?;
-                    final audioUrl = data['audioUrl'] as String?; // New field
+                    final audioUrl = data['audioUrl'] as String?;
                     final dt = data['timestamp'] != null ? DateTime.tryParse(data['timestamp']) : null;
+                    final isPending = data['isPending'] == true;
                     
-                    return _buildMessageBubble(isMe, text, imageUrl, audioUrl, dt);
+                    return _buildMessageBubble(isMe, text, imageUrl, audioUrl, dt, isPending);
                   },
                 );
               },
@@ -258,7 +308,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     );
   }
 
-  Widget _buildMessageBubble(bool isMe, String text, String? imageUrl, String? audioUrl, DateTime? dt) {
+  Widget _buildMessageBubble(bool isMe, String text, String? imageUrl, String? audioUrl, DateTime? dt, bool isPending) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Column(
@@ -284,34 +334,50 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             _buildAudioBubble(isMe, audioUrl),
 
           if (text.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-              decoration: BoxDecoration(
-                gradient: isMe
-                    ? const LinearGradient(
-                        colors: [Color(0xFFF14C86), Color(0xFF8B51E5)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : null,
-                color: isMe ? null : const Color(0xFFF9F9F9),
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(24),
-                  topRight: const Radius.circular(24),
-                  bottomLeft: isMe ? const Radius.circular(24) : Radius.zero,
-                  bottomRight: isMe ? Radius.zero : const Radius.circular(24),
+            Stack(
+              children: [
+                Container(
+                  padding: const EdgeInsets.fromLTRB(18, 14, 45, 14), // Added padding for ticks
+                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+                  decoration: BoxDecoration(
+                    gradient: isMe
+                        ? const LinearGradient(
+                            colors: [Color(0xFFF14C86), Color(0xFF8B51E5)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : null,
+                    color: isMe ? null : const Color(0xFFF9F9F9),
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(24),
+                      topRight: const Radius.circular(24),
+                      bottomLeft: isMe ? const Radius.circular(24) : Radius.zero,
+                      bottomRight: isMe ? Radius.zero : const Radius.circular(24),
+                    ),
+                    border: isMe ? null : Border.all(color: Colors.grey[100]!),
+                  ),
+                  child: Text(
+                    text,
+                    style: GoogleFonts.nunito(
+                      fontSize: 16,
+                      color: isMe ? Colors.white : const Color(0xFF333333),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
-                border: isMe ? null : Border.all(color: Colors.grey[100]!),
-              ),
-              child: Text(
-                text,
-                style: GoogleFonts.nunito(
-                  fontSize: 16,
-                  color: isMe ? Colors.white : const Color(0xFF333333),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+                
+                // Status Ticks
+                if (isMe)
+                  Positioned(
+                    bottom: 8,
+                    right: 12,
+                    child: Icon(
+                      isPending ? Icons.done : Icons.done_all,
+                      size: 14,
+                      color: isPending ? Colors.white70 : Colors.white,
+                    ),
+                  ),
+              ],
             ),
         ],
       ),

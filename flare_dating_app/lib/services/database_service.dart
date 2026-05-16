@@ -274,6 +274,40 @@ class DatabaseService {
     }
   }
 
+  Stream<List<Map<String, dynamic>>> getMutualMatchesStream(String myEmail) {
+    // Listen to interactions where I am involved
+    return supabase
+        .from('interactions')
+        .stream(primaryKey: ['id'])
+        .eq('is_like', true)
+        .asyncMap((allLikes) async {
+          // 1. Find who I liked
+          final likedByMe = allLikes
+              .where((l) => l['from_email'] == myEmail)
+              .map((l) => l['to_email'] as String)
+              .toList();
+
+          // 2. Find who liked me
+          final likedMe = allLikes
+              .where((l) => l['to_email'] == myEmail)
+              .map((l) => l['from_email'] as String)
+              .toList();
+
+          // 3. Intersection = Mutual
+          final mutualEmails = likedByMe.where((email) => likedMe.contains(email)).toList();
+
+          if (mutualEmails.isEmpty) return [];
+
+          // 4. Fetch user details for these emails
+          final usersRes = await supabase
+              .from('users')
+              .select()
+              .inFilter('email', mutualEmails);
+          
+          return List<Map<String, dynamic>>.from(usersRes);
+        });
+  }
+
   String getChatId(String user1, String user2) {
     if (user1.compareTo(user2) > 0) {
       return '${user1}_$user2';
@@ -411,6 +445,18 @@ class DatabaseService {
               )
               .toList();
         });
+  }
+
+  Future<void> clearDummyUsers() async {
+    try {
+      // Deletes any user with an @example.com email address
+      // Also delete users with 'Tester' as last name
+      await supabase.from('users').delete().like('email', '%@example.com');
+      await supabase.from('users').delete().eq('last_name', 'Tester');
+      print('Cleanup: Successfully removed dummy accounts.');
+    } catch (e) {
+      print('Cleanup: Error removing dummy accounts: $e');
+    }
   }
 
   Future<void> seedDummyUsers() async {

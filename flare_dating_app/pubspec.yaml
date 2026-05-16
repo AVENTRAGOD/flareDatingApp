@@ -49,7 +49,7 @@ dependencies:
   sqflite_common_ffi_web: ^1.0.2
   sqflite_common_ffi: ^2.3.7+1
   shared_preferences: ^2.2.3
-  record: ^5.2.0
+  record: ^6.2.0
   audioplayers: ^6.1.0
 
 dev_dependencies:
@@ -106,3 +106,6 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+dependency_overrides:
+  record_platform_interface: 1.5.0
