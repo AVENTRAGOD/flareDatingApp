@@ -50,26 +50,32 @@ class _PingPongGameScreenState extends State<PingPongGameScreen> {
       ballY += ballYDirection;
 
       // Check horizontal wall collisions
-      if (ballX >= 1 || ballX <= -1) {
-        ballXDirection = -ballXDirection;
+      if (ballX >= 0.95) {
+        ballX = 0.95;
+        ballXDirection = -ballXDirection.abs();
+      } else if (ballX <= -0.95) {
+        ballX = -0.95;
+        ballXDirection = ballXDirection.abs();
       }
 
       // Check top wall collision
-      if (ballY <= -1) {
-        ballYDirection = -ballYDirection;
+      if (ballY <= -0.95) {
+        ballY = -0.95;
+        ballYDirection = ballYDirection.abs();
       }
 
       // Check paddle collision (bottom)
-      if (ballY >= 0.9) {
-        if (ballX >= paddleX - (paddleWidth / 2) && ballX <= paddleX + (paddleWidth / 2)) {
-          ballYDirection = -ballYDirection;
+      if (ballY >= 0.9 && ballY <= 0.95 && ballYDirection > 0) {
+        if (ballX >= paddleX - (paddleWidth / 2) - 0.05 && ballX <= paddleX + (paddleWidth / 2) + 0.05) {
+          ballY = 0.9;
+          ballYDirection = -ballYDirection.abs();
           score++;
           // Slightly increase speed as score goes up
           ballXDirection *= 1.05;
           ballYDirection *= 1.05;
-        } else if (ballY >= 1.1) {
-          _gameOver();
         }
+      } else if (ballY >= 1.1) {
+        _gameOver();
       }
     });
   }
@@ -161,16 +167,17 @@ class _PingPongGameScreenState extends State<PingPongGameScreen> {
         child: Column(
           children: [
             Expanded(
-              child: Stack(
-                children: [
-                  // Play Area Border
-                  Container(
-                    margin: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFFF14C86).withOpacity(0.3), width: 2),
-                      borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Stack(
+                  children: [
+                    // Play Area Border
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFF14C86).withOpacity(0.3), width: 2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                  ),
 
                   // Ball
                   Container(

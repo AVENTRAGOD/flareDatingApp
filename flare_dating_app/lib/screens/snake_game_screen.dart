@@ -24,6 +24,7 @@ class _SnakeGameScreenState extends State<SnakeGameScreen> {
   List<int> snakePosition = [45, 65, 85, 105]; // Head is at the end of the list
   int foodPosition = 55;
   String direction = 'down';
+  String currentDirection = 'down'; // Tracks the actual movement direction
   bool hasStarted = false;
   bool isGameOver = false;
   int score = 0;
@@ -58,6 +59,8 @@ class _SnakeGameScreenState extends State<SnakeGameScreen> {
     setState(() {
       int head = snakePosition.last;
       int nextSquare;
+      
+      currentDirection = direction; // Update current direction to the one we are committing to
 
       switch (direction) {
         case 'up':
@@ -96,8 +99,8 @@ class _SnakeGameScreenState extends State<SnakeGameScreen> {
   }
 
   bool _checkCollision(int head, int nextSquare) {
-    // 1. Hit itself
-    if (snakePosition.contains(nextSquare)) return true;
+    // 1. Hit itself (exclude the tail, as it will move forward)
+    if (snakePosition.contains(nextSquare) && nextSquare != snakePosition.first) return true;
 
     // 2. Hit Walls
     if (direction == 'up' && nextSquare < 0) return true;
@@ -189,6 +192,7 @@ class _SnakeGameScreenState extends State<SnakeGameScreen> {
     setState(() {
       snakePosition = [45, 65, 85, 105];
       direction = 'down';
+      currentDirection = 'down';
       score = 0;
       hasStarted = false;
       isGameOver = false;
@@ -209,16 +213,16 @@ class _SnakeGameScreenState extends State<SnakeGameScreen> {
 
     if (dx.abs() > dy.abs()) {
       // Horizontal swipe
-      if (dx > 0 && direction != 'left') {
+      if (dx > 0 && currentDirection != 'left') {
         direction = 'right';
-      } else if (dx < 0 && direction != 'right') {
+      } else if (dx < 0 && currentDirection != 'right') {
         direction = 'left';
       }
     } else {
       // Vertical swipe
-      if (dy > 0 && direction != 'up') {
+      if (dy > 0 && currentDirection != 'up') {
         direction = 'down';
-      } else if (dy < 0 && direction != 'down') {
+      } else if (dy < 0 && currentDirection != 'down') {
         direction = 'up';
       }
     }
@@ -266,18 +270,20 @@ class _SnakeGameScreenState extends State<SnakeGameScreen> {
                         if (snakePosition.contains(index)) {
                           final isHead = snakePosition.last == index;
                           return Container(
+                            margin: const EdgeInsets.all(1), // add small margin to show segments clearly
                             decoration: BoxDecoration(
                               color: isHead ? const Color(0xFF66BB6A) : const Color(0xFF4CAF50), // Snake body
-                              // Blocky style with sharp borders
-                              border: Border.all(color: Colors.black.withOpacity(0.5), width: 1.5),
+                              // Less blocky style
+                              borderRadius: BorderRadius.circular(6),
                             ),
                           );
                         } else if (foodPosition == index) {
                           return Container(
+                            margin: const EdgeInsets.all(2), // slightly smaller food
                             decoration: BoxDecoration(
                               color: const Color(0xFFF14C86), // Flare pink apple
-                              // Blocky apple too
-                              border: Border.all(color: Colors.black, width: 2),
+                              // Less blocky apple
+                              borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(Icons.favorite, size: 10, color: Colors.white),
                           );

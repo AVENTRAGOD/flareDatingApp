@@ -36,7 +36,10 @@ class DatabaseService {
     }
   }
 
-  Future<void> updateUserProfile(String email, Map<String, dynamic> profileData) async {
+  Future<void> updateUserProfile(
+    String email,
+    Map<String, dynamic> profileData,
+  ) async {
     try {
       await supabase.from('users').update(profileData).eq('email', email);
     } catch (e) {
@@ -50,18 +53,33 @@ class DatabaseService {
   }
 
   Future<Map<String, dynamic>?> getUserProfile(String email) async {
-    final res = await supabase.from('users').select().eq('email', email).maybeSingle();
+    final res = await supabase
+        .from('users')
+        .select()
+        .eq('email', email)
+        .maybeSingle();
     return res;
   }
 
   Future<Map<String, int>> getUserStats(String email) async {
     try {
-      final likesRes = await supabase.from('interactions').select('from_email').eq('from_email', email).eq('is_like', true);
-      final passesRes = await supabase.from('interactions').select('from_email').eq('from_email', email).eq('is_like', false);
-      
+      final likesRes = await supabase
+          .from('interactions')
+          .select('from_email')
+          .eq('from_email', email)
+          .eq('is_like', true);
+      final passesRes = await supabase
+          .from('interactions')
+          .select('from_email')
+          .eq('from_email', email)
+          .eq('is_like', false);
+
       // Messages might not have an 'id' column, so we select 'sender_id'
-      final msgRes = await supabase.from('messages').select('sender_id').eq('sender_id', email);
-      
+      final msgRes = await supabase
+          .from('messages')
+          .select('sender_id')
+          .eq('sender_id', email);
+
       final userDoc = await getUserProfile(email);
       int snakeScore = userDoc?['snake_high_score'] ?? 0;
       int pongScore = userDoc?['pingpong_high_score'] ?? 0;
@@ -76,7 +94,13 @@ class DatabaseService {
     } catch (e, stacktrace) {
       debugPrint('ERROR in getUserStats: $e');
       debugPrint('Stacktrace: $stacktrace');
-      return {'likes_sent': 0, 'passes_sent': 0, 'messages_sent': 0, 'snake_score': 0, 'pong_score': 0};
+      return {
+        'likes_sent': 0,
+        'passes_sent': 0,
+        'messages_sent': 0,
+        'snake_score': 0,
+        'pong_score': 0,
+      };
     }
   }
 
@@ -101,23 +125,31 @@ class DatabaseService {
   }
 
   Future<List<Map<String, dynamic>>> getSnakeLeaderboard() async {
-    final res = await supabase.from('users').select().order('snake_high_score', ascending: false).limit(10);
+    final res = await supabase
+        .from('users')
+        .select()
+        .order('snake_high_score', ascending: false)
+        .limit(10);
     return List<Map<String, dynamic>>.from(res);
   }
 
   Future<List<Map<String, dynamic>>> getPongLeaderboard() async {
-    final res = await supabase.from('users').select().order('pingpong_high_score', ascending: false).limit(10);
+    final res = await supabase
+        .from('users')
+        .select()
+        .order('pingpong_high_score', ascending: false)
+        .limit(10);
     return List<Map<String, dynamic>>.from(res);
   }
 
   Future<String?> uploadProfilePicture(String email, {Uint8List? bytes}) async {
     try {
       if (bytes == null) return null;
-      
+
       final fileName = '$email-${DateTime.now().millisecondsSinceEpoch}.jpg';
       await supabase.storage.from('avatars').uploadBinary(fileName, bytes);
       final publicUrl = supabase.storage.from('avatars').getPublicUrl(fileName);
-      
+
       await updateUserProfile(email, {'avatar_path': publicUrl});
       return publicUrl;
     } catch (e) {
@@ -125,7 +157,12 @@ class DatabaseService {
       return null;
     }
   }
-  Future<void> recordInteraction(String myEmail, String targetEmail, bool isLike) async {
+
+  Future<void> recordInteraction(
+    String myEmail,
+    String targetEmail,
+    bool isLike,
+  ) async {
     try {
       final interactionId = '${myEmail}_$targetEmail';
       await supabase.from('interactions').upsert({
@@ -153,7 +190,7 @@ class DatabaseService {
           'from_email': targetEmail,
           'to_email': myEmail,
           'is_like': true,
-        }
+        },
       ]);
     } catch (e) {
       debugPrint('Error forcing mutual match: $e');
@@ -163,7 +200,11 @@ class DatabaseService {
   Future<bool> checkMutualMatch(String myEmail, String targetEmail) async {
     try {
       final interactionId = '${targetEmail}_$myEmail';
-      final response = await supabase.from('interactions').select('is_like').eq('id', interactionId).maybeSingle();
+      final response = await supabase
+          .from('interactions')
+          .select('is_like')
+          .eq('id', interactionId)
+          .maybeSingle();
       return response?['is_like'] == true;
     } catch (e) {
       print('Error checking mutual match: $e');
@@ -182,7 +223,10 @@ class DatabaseService {
 
   Future<List<String>> getSwipedUsers(String myEmail) async {
     try {
-      final res = await supabase.from('interactions').select('to_email').eq('from_email', myEmail);
+      final res = await supabase
+          .from('interactions')
+          .select('to_email')
+          .eq('from_email', myEmail);
       return res.map((r) => r['to_email'] as String).toList();
     } catch (e) {
       print('Error getting swiped users: $e');
@@ -192,7 +236,11 @@ class DatabaseService {
 
   Future<List<String>> getUsersWhoLikedMe(String currentUserEmail) async {
     try {
-      final res = await supabase.from('interactions').select('from_email').eq('to_email', currentUserEmail).eq('is_like', true);
+      final res = await supabase
+          .from('interactions')
+          .select('from_email')
+          .eq('to_email', currentUserEmail)
+          .eq('is_like', true);
       return res.map((r) => r['from_email'] as String).toList();
     } catch (e) {
       print('Error getting users who liked me: $e');
@@ -202,11 +250,20 @@ class DatabaseService {
 
   Future<List<Map<String, dynamic>>> getLikedUsers(String myEmail) async {
     try {
-      final res = await supabase.from('interactions').select('to_email').eq('from_email', myEmail).eq('is_like', true);
-      final List<String> likedEmails = res.map((r) => r['to_email'] as String).toList();
+      final res = await supabase
+          .from('interactions')
+          .select('to_email')
+          .eq('from_email', myEmail)
+          .eq('is_like', true);
+      final List<String> likedEmails = res
+          .map((r) => r['to_email'] as String)
+          .toList();
       if (likedEmails.isEmpty) return [];
-      
-      final usersRes = await supabase.from('users').select().inFilter('email', likedEmails);
+
+      final usersRes = await supabase
+          .from('users')
+          .select()
+          .inFilter('email', likedEmails);
       return List<Map<String, dynamic>>.from(usersRes);
     } catch (e) {
       print('Error getting liked users: $e');
@@ -222,21 +279,30 @@ class DatabaseService {
     }
   }
 
-  Future<void> sendMessage(String senderEmail, String receiverEmail, String text, {String? imageUrl}) async {
+  Future<void> sendMessage(
+    String senderEmail,
+    String receiverEmail,
+    String text, {
+    String? imageUrl,
+  }) async {
     try {
       String? finalImageUrl;
       if (imageUrl != null && imageUrl.startsWith('data:image')) {
         final base64Data = imageUrl.split(',').last;
         final bytes = base64Decode(base64Data);
         final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
-        await supabase.storage.from('chat_images').uploadBinary(fileName, bytes);
-        finalImageUrl = supabase.storage.from('chat_images').getPublicUrl(fileName);
+        await supabase.storage
+            .from('chat_images')
+            .uploadBinary(fileName, bytes);
+        finalImageUrl = supabase.storage
+            .from('chat_images')
+            .getPublicUrl(fileName);
       } else {
         finalImageUrl = imageUrl;
       }
 
       final chatId = getChatId(senderEmail, receiverEmail);
-      
+
       // Upsert Chat Info
       await supabase.from('chats').upsert({
         'id': chatId,
@@ -260,37 +326,61 @@ class DatabaseService {
   }
 
   Stream<List<Map<String, dynamic>>> getUserChatsStream(String email) {
-    return supabase.from('chats').stream(primaryKey: ['id']).map((chats) {
-      return chats.where((c) {
-        final participants = List<String>.from(c['participants'] ?? []);
-        return participants.contains(email);
-      }).toList()..sort((a, b) => (b['last_message_time'] as String? ?? '').compareTo(a['last_message_time'] as String? ?? ''));
-    }).map((chats) {
-        // Map to legacy property names for UI bindings
-        return chats.map((c) => {
-            ...c, 
-            'lastMessage': c['last_message'],
-            'lastMessageTime': c['last_message_time']
-        }).toList();
-    });
+    return supabase
+        .from('chats')
+        .stream(primaryKey: ['id'])
+        .map((chats) {
+          return chats.where((c) {
+            final participants = List<String>.from(c['participants'] ?? []);
+            return participants.contains(email);
+          }).toList()..sort(
+            (a, b) => (b['last_message_time'] as String? ?? '').compareTo(
+              a['last_message_time'] as String? ?? '',
+            ),
+          );
+        })
+        .map((chats) {
+          // Map to legacy property names for UI bindings
+          return chats
+              .map(
+                (c) => {
+                  ...c,
+                  'lastMessage': c['last_message'],
+                  'lastMessageTime': c['last_message_time'],
+                },
+              )
+              .toList();
+        });
   }
 
   Stream<List<Map<String, dynamic>>> getChatStream(String chatId) {
-    return supabase.from('messages').stream(primaryKey: ['id']).eq('chat_id', chatId).order('created_at', ascending: false).map((msgs) {
-        // Map to legacy property names expected by UI
-        return msgs.map((m) => {
-            ...m,
-            'senderId': m['sender_id'],
-            'text': m['text_content'],
-            'imageUrl': m['image_url'],
-            'timestamp': m['created_at']
-        }).toList();
-    });
+    return supabase
+        .from('messages')
+        .stream(primaryKey: ['id'])
+        .eq('chat_id', chatId)
+        .order('created_at', ascending: false)
+        .map((msgs) {
+          // Map to legacy property names expected by UI
+          return msgs
+              .map(
+                (m) => {
+                  ...m,
+                  'senderId': m['sender_id'],
+                  'text': m['text_content'],
+                  'imageUrl': m['image_url'],
+                  'timestamp': m['created_at'],
+                },
+              )
+              .toList();
+        });
   }
-  
+
   Future<void> seedDummyUsers() async {
     try {
-      final List<String> testEmails = ['tester1@example.com', 'nisalsayuranga0710@gmail.com'];
+      final List<String> testEmails = [
+        'tester1@example.com',
+        'nisalsayuranga0710@gmail.com',
+      ];
       bool needsSeeding = false;
       for (var email in testEmails) {
         final existing = await getUserProfile(email);
@@ -302,12 +392,19 @@ class DatabaseService {
 
       if (!needsSeeding) {
         print('Seed: Dummy users already exist. Skipping.');
-        return; 
+        return;
       }
 
       final List<String> genders = ['Male', 'Female'];
-      final List<String> locations = ['New York, USA', 'London, UK', 'Tokyo, Japan', 'Paris, France', 'Berlin, Germany', 'Sydney, Australia'];
-      
+      final List<String> locations = [
+        'New York, USA',
+        'London, UK',
+        'Tokyo, Japan',
+        'Paris, France',
+        'Berlin, Germany',
+        'Sydney, Australia',
+      ];
+
       final List<String> photos = [
         'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&q=80&w=600',
         'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=600',
@@ -321,7 +418,18 @@ class DatabaseService {
         'https://images.unsplash.com/photo-1520813792240-56fc4a3765a7?auto=format&fit=crop&q=80&w=600',
       ];
 
-      final List<String> firstNames = ['Sarah', 'Emma', 'Jessica', 'David', 'Michael', 'Chloe', 'Daniel', 'Olivia', 'James', 'Mia'];
+      final List<String> firstNames = [
+        'Sarah',
+        'Emma',
+        'Jessica',
+        'David',
+        'Michael',
+        'Chloe',
+        'Daniel',
+        'Olivia',
+        'James',
+        'Mia',
+      ];
       final List<String> bios = [
         'Love traveling and exploring new cultures.',
         'Tech enthusiast and amateur photographer.',
@@ -332,19 +440,22 @@ class DatabaseService {
         'Hiking and fitness are my passions.',
         'Art is where my heart is.',
         'Living life to the fullest.',
-        'Dreaming big and working hard.'
+        'Dreaming big and working hard.',
       ];
 
       final Random random = Random();
 
       for (int i = 0; i < 10; i++) {
         final email = 'tester${i + 1}@example.com';
-        
-        final List<String> interestsPool = List.from(availableInterests)..shuffle();
+
+        final List<String> interestsPool = List.from(availableInterests)
+          ..shuffle();
         final selectedInterests = interestsPool.take(4).toList();
-        
+
         final age = 22 + (i % 8);
-        final dob = DateTime.now().subtract(Duration(days: age * 365 + (i * 10)));
+        final dob = DateTime.now().subtract(
+          Duration(days: age * 365 + (i * 10)),
+        );
 
         // Generate random high scores for the leaderboards
         final int randomSnakeScore = 5 + random.nextInt(45);
