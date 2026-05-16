@@ -13,11 +13,8 @@ import 'games_screen.dart';
 
 class UserProfileTab extends StatefulWidget {
   final String currentUserEmail;
-  
-  const UserProfileTab({
-    super.key,
-    required this.currentUserEmail,
-  });
+
+  const UserProfileTab({super.key, required this.currentUserEmail});
 
   @override
   State<UserProfileTab> createState() => _UserProfileTabState();
@@ -25,7 +22,13 @@ class UserProfileTab extends StatefulWidget {
 
 class _UserProfileTabState extends State<UserProfileTab> {
   Map<String, dynamic>? _userProfile;
-  Map<String, int> _userStats = {'likes_sent': 0, 'passes_sent': 0, 'messages_sent': 0, 'snake_score': 0, 'pong_score': 0};
+  Map<String, int> _userStats = {
+    'likes_sent': 0,
+    'passes_sent': 0,
+    'messages_sent': 0,
+    'snake_score': 0,
+    'pong_score': 0,
+  };
   bool _isLoading = true;
   bool _isUploading = false;
 
@@ -37,8 +40,12 @@ class _UserProfileTabState extends State<UserProfileTab> {
 
   Future<void> _loadProfile() async {
     try {
-      final profile = await DatabaseService.instance.getUserProfile(widget.currentUserEmail);
-      final stats = await DatabaseService.instance.getUserStats(widget.currentUserEmail);
+      final profile = await DatabaseService.instance.getUserProfile(
+        widget.currentUserEmail,
+      );
+      final stats = await DatabaseService.instance.getUserStats(
+        widget.currentUserEmail,
+      );
       if (mounted) {
         setState(() {
           _userProfile = profile;
@@ -60,22 +67,24 @@ class _UserProfileTabState extends State<UserProfileTab> {
       source: ImageSource.gallery,
       imageQuality: 70,
     );
-    
+
     if (image != null) {
       setState(() => _isUploading = true);
       try {
         final bytes = await image.readAsBytes();
         final publicUrl = await DatabaseService.instance.uploadProfilePicture(
-          widget.currentUserEmail, 
+          widget.currentUserEmail,
           bytes: bytes,
         );
-        
+
         if (publicUrl != null) {
           _loadProfile();
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
         }
       } finally {
         if (mounted) setState(() => _isUploading = false);
@@ -84,14 +93,21 @@ class _UserProfileTabState extends State<UserProfileTab> {
   }
 
   void _editName() {
-    final firstController = TextEditingController(text: _userProfile?['first_name'] ?? '');
-    final lastController = TextEditingController(text: _userProfile?['last_name'] ?? '');
+    final firstController = TextEditingController(
+      text: _userProfile?['first_name'] ?? '',
+    );
+    final lastController = TextEditingController(
+      text: _userProfile?['last_name'] ?? '',
+    );
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text('Edit Name', style: GoogleFonts.nunito(fontWeight: FontWeight.w900)),
+        title: Text(
+          'Edit Name',
+          style: GoogleFonts.nunito(fontWeight: FontWeight.w900),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -107,14 +123,20 @@ class _UserProfileTabState extends State<UserProfileTab> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF14C86)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF14C86),
+            ),
             onPressed: () async {
-              await DatabaseService.instance.updateUserProfile(widget.currentUserEmail, {
-                'first_name': firstController.text,
-                'last_name': lastController.text,
-              });
+              await DatabaseService.instance
+                  .updateUserProfile(widget.currentUserEmail, {
+                    'first_name': firstController.text,
+                    'last_name': lastController.text,
+                  });
               if (mounted) {
                 Navigator.pop(context);
                 _loadProfile();
@@ -132,7 +154,9 @@ class _UserProfileTabState extends State<UserProfileTab> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Text(
             'Delete Account?',
             style: GoogleFonts.nunito(
@@ -149,40 +173,57 @@ class _UserProfileTabState extends State<UserProfileTab> {
               onPressed: () => Navigator.pop(context),
               child: Text(
                 'Cancel',
-                style: GoogleFonts.nunito(color: Colors.grey[600], fontWeight: FontWeight.bold),
+                style: GoogleFonts.nunito(
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFF14C86),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               onPressed: () async {
-                Navigator.pop(context); 
+                Navigator.pop(context);
                 showDialog(
                   context: context,
                   barrierDismissible: false,
-                  builder: (context) => const Center(child: CircularProgressIndicator(color: Color(0xFFF14C86))),
+                  builder: (context) => const Center(
+                    child: CircularProgressIndicator(color: Color(0xFFF14C86)),
+                  ),
                 );
                 try {
-                  await DatabaseService.instance.deleteUser(widget.currentUserEmail);
+                  await DatabaseService.instance.deleteUser(
+                    widget.currentUserEmail,
+                  );
                   if (mounted) {
                     Navigator.pushAndRemoveUntil(
                       context,
-                      MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const WelcomeScreen(),
+                      ),
                       (Route<dynamic> route) => false,
                     );
                   }
                 } catch (e) {
                   if (mounted) {
-                    Navigator.pop(context); 
+                    Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Failed to delete account: $e')),
                     );
                   }
                 }
               },
-              child: Text('Delete', style: GoogleFonts.nunito(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: Text(
+                'Delete',
+                style: GoogleFonts.nunito(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         );
@@ -194,7 +235,9 @@ class _UserProfileTabState extends State<UserProfileTab> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator(color: Color(0xFFF14C86))),
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: Color(0xFFF14C86)),
+      ),
     );
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -228,7 +271,9 @@ class _UserProfileTabState extends State<UserProfileTab> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: Color(0xFFF14C86))),
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFFF14C86)),
+        ),
       );
     }
 
@@ -249,20 +294,29 @@ class _UserProfileTabState extends State<UserProfileTab> {
               child: Stack(
                 children: [
                   Positioned.fill(
-                    child: Builder(builder: (context) {
-                      return avatarImage != null
-                          ? Image(image: avatarImage, fit: BoxFit.cover)
-                          : Container(
-                              decoration: const BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [Color(0xFF1A1635), Color(0xFF0D0B1F)],
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
+                    child: Builder(
+                      builder: (context) {
+                        return avatarImage != null
+                            ? Image(image: avatarImage, fit: BoxFit.cover)
+                            : Container(
+                                decoration: const BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Color(0xFF1A1635),
+                                      Color(0xFF0D0B1F),
+                                    ],
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                  ),
                                 ),
-                              ),
-                              child: Icon(Icons.person_rounded, size: 120, color: Colors.white.withOpacity(0.05)),
-                            );
-                    }),
+                                child: Icon(
+                                  Icons.person_rounded,
+                                  size: 120,
+                                  color: Colors.white.withOpacity(0.05),
+                                ),
+                              );
+                      },
+                    ),
                   ),
                   Positioned.fill(
                     child: Container(
@@ -317,13 +371,19 @@ class _UserProfileTabState extends State<UserProfileTab> {
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFFF14C86).withOpacity(0.4),
+                                  color: const Color(
+                                    0xFFF14C86,
+                                  ).withOpacity(0.4),
                                   blurRadius: 15,
                                   offset: const Offset(0, 5),
                                 ),
                               ],
                             ),
-                            child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 24),
+                            child: const Icon(
+                              Icons.camera_alt_rounded,
+                              color: Colors.white,
+                              size: 24,
+                            ),
                           ),
                         ),
                       ],
@@ -340,34 +400,80 @@ class _UserProfileTabState extends State<UserProfileTab> {
                 children: [
                   Row(
                     children: [
-                      Expanded(child: _buildBentoStat('Likes', _userStats['likes_sent'].toString(), const Color(0xFFF14C86))),
+                      Expanded(
+                        child: _buildBentoStat(
+                          'Likes',
+                          _userStats['likes_sent'].toString(),
+                          const Color(0xFFF14C86),
+                        ),
+                      ),
                       const SizedBox(width: 16),
-                      Expanded(child: _buildBentoStat('Passes', _userStats['passes_sent'].toString(), const Color(0xFF8B51E5))),
+                      Expanded(
+                        child: _buildBentoStat(
+                          'Passes',
+                          _userStats['passes_sent'].toString(),
+                          const Color(0xFF8B51E5),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
                   _buildBentoStat(
-                    'Game Achievements', 
-                    '${(_userStats['snake_score']! + _userStats['pong_score']!)} Points', 
+                    'Game Achievements',
+                    '${(_userStats['snake_score']! + _userStats['pong_score']!)} Points',
                     const Color(0xFFC76CD9),
                     isWide: true,
                   ),
-                  
+
                   const SizedBox(height: 40),
-                  
+
                   // Modern Settings List
                   _buildSectionTitle('Account Settings'),
                   const SizedBox(height: 16),
-                  _buildModernSetting(Icons.person_outline_rounded, 'Edit Profile', _editName),
-                  _buildModernSetting(Icons.sports_esports_outlined, 'Game Center', () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => GamesScreen(currentUserEmail: widget.currentUserEmail)));
-                  }),
-                  _buildModernSetting(Icons.help_outline_rounded, 'User Guide', () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const UserGuideScreen()));
-                  }),
-                  _buildModernSetting(Icons.logout_rounded, 'Log Out', _logout, isDestructive: true),
-                  _buildModernSetting(Icons.delete_outline_rounded, 'Delete Account', _confirmDelete, isDestructive: true),
-                  
+                  _buildModernSetting(
+                    Icons.person_outline_rounded,
+                    'Edit Profile',
+                    _editName,
+                  ),
+                  _buildModernSetting(
+                    Icons.sports_esports_outlined,
+                    'Game Center',
+                    () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => GamesScreen(
+                            currentUserEmail: widget.currentUserEmail,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildModernSetting(
+                    Icons.help_outline_rounded,
+                    'User Guide',
+                    () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const UserGuideScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildModernSetting(
+                    Icons.logout_rounded,
+                    'Log Out',
+                    _logout,
+                    isDestructive: true,
+                  ),
+                  _buildModernSetting(
+                    Icons.delete_outline_rounded,
+                    'Delete Account',
+                    _confirmDelete,
+                    isDestructive: true,
+                  ),
+
                   const SizedBox(height: 100), // Navigation padding
                 ],
               ),
@@ -391,7 +497,12 @@ class _UserProfileTabState extends State<UserProfileTab> {
     return NetworkImage(avatarPath);
   }
 
-  Widget _buildBentoStat(String label, String value, Color color, {bool isWide = false}) {
+  Widget _buildBentoStat(
+    String label,
+    String value,
+    Color color, {
+    bool isWide = false,
+  }) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -438,7 +549,12 @@ class _UserProfileTabState extends State<UserProfileTab> {
     );
   }
 
-  Widget _buildModernSetting(IconData icon, String title, VoidCallback onTap, {bool isDestructive = false}) {
+  Widget _buildModernSetting(
+    IconData icon,
+    String title,
+    VoidCallback onTap, {
+    bool isDestructive = false,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -450,18 +566,28 @@ class _UserProfileTabState extends State<UserProfileTab> {
         ),
         child: Row(
           children: [
-            Icon(icon, color: isDestructive ? Colors.redAccent : const Color(0xFF8B51E5), size: 22),
+            Icon(
+              icon,
+              color: isDestructive ? Colors.redAccent : const Color(0xFF8B51E5),
+              size: 22,
+            ),
             const SizedBox(width: 16),
             Text(
               title,
               style: GoogleFonts.outfit(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: isDestructive ? Colors.redAccent.withOpacity(0.8) : Colors.white.withOpacity(0.9),
+                color: isDestructive
+                    ? Colors.redAccent.withOpacity(0.8)
+                    : Colors.white.withOpacity(0.9),
               ),
             ),
             const Spacer(),
-            Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white.withOpacity(0.2)),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 14,
+              color: Colors.white.withOpacity(0.2),
+            ),
           ],
         ),
       ),
