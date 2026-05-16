@@ -128,6 +128,7 @@ class DatabaseService {
     final res = await supabase
         .from('users')
         .select()
+        .not('snake_high_score', 'is', null)
         .order('snake_high_score', ascending: false)
         .limit(10);
     return List<Map<String, dynamic>>.from(res);
@@ -137,6 +138,7 @@ class DatabaseService {
     final res = await supabase
         .from('users')
         .select()
+        .not('pingpong_high_score', 'is', null)
         .order('pingpong_high_score', ascending: false)
         .limit(10);
     return List<Map<String, dynamic>>.from(res);
