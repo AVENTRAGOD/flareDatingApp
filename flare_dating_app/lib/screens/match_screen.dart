@@ -78,7 +78,7 @@ class _MatchScreenState extends State<MatchScreen> with TickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFDE8F5),
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
@@ -86,91 +86,99 @@ class _MatchScreenState extends State<MatchScreen> with TickerProviderStateMixin
             Align(
               alignment: Alignment.topLeft,
               child: IconButton(
-                icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
-                onPressed: () => Navigator.pop(context), 
+                icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF333333)),
+                onPressed: () => Navigator.pop(context),
               ),
             ),
-            
+
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                   // The Flare "Fire/Heart" Logo with pulsing animation
-                   ScaleTransition(
-                     scale: _pulseAnimation,
-                     child: Container(
-                        width: 100,
-                        height: 100,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: [Color(0xFFF14C86), Color(0xFFF79C65), Color(0xFFC76CD9)], // Pink, Orange, Purple
-                            begin: Alignment.bottomLeft,
-                            end: Alignment.topRight,
-                          ),
+                  // The Flare "Fire/Heart" Logo with pulsing animation
+                  ScaleTransition(
+                    scale: _pulseAnimation,
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: [
+                            Color(0xFFF14C86),
+                            Color(0xFFF79C65),
+                            Color(0xFFC76CD9),
+                          ], // Pink, Orange, Purple
+                          begin: Alignment.bottomLeft,
+                          end: Alignment.topRight,
                         ),
-                        child: const Center(
-                          child: Icon(Icons.favorite, color: Colors.white, size: 50),
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.favorite, color: Colors.white, size: 50),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 48),
+
+                  // The Two Profile Avatars
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Current User
+                      SlideTransition(
+                        position: _leftAvatarSlide,
+                        child: ScaleTransition(
+                          scale: _avatarScale,
+                          child: _buildAvatarCircle(widget.currentUserAvatar),
                         ),
-                     ),
-                   ),
-                   
-                   const SizedBox(height: 48),
-                   
-                   // The Two Profile Avatars
-                   Row(
-                     mainAxisAlignment: MainAxisAlignment.center,
-                     children: [
-                       // Current User
-                       SlideTransition(
-                         position: _leftAvatarSlide,
-                         child: ScaleTransition(
-                           scale: _avatarScale,
-                           child: _buildAvatarCircle(widget.currentUserAvatar),
-                         ),
-                       ),
-                       
-                       const SizedBox(width: 16),
-                       
-                       // Target User
-                       SlideTransition(
-                         position: _rightAvatarSlide,
-                         child: ScaleTransition(
-                           scale: _avatarScale,
-                           child: _buildAvatarCircle(widget.targetUserAvatar),
-                         ),
-                       ),
-                     ],
-                   ),
-                   
-                   const SizedBox(height: 64),
-                   
-                   // Typography
-                   Text(
-                     'Congrats!',
-                     style: GoogleFonts.nunito(
-                       fontSize: 48,
-                       fontWeight: FontWeight.w900,
-                       color: const Color(0xFF322369), // Dark Purple
-                     ),
-                   ),
-                   const SizedBox(height: 8),
-                   Text(
-                     'It\'s a Match!',
-                     style: GoogleFonts.nunito(
-                       fontSize: 18,
-                       fontWeight: FontWeight.w800,
-                       color: const Color(0xFF5E5088),
-                     ),
-                   ),
-                   const SizedBox(height: 4),
-                   Text(
-                     '${widget.targetUserName} & You both liked each other',
-                     style: GoogleFonts.nunito(
-                       fontSize: 16,
-                       color: const Color(0xFF5E5088),
-                     ),
-                   ),
+                      ),
+
+                      const SizedBox(width: 16),
+
+                      // Target User
+                      SlideTransition(
+                        position: _rightAvatarSlide,
+                        child: ScaleTransition(
+                          scale: _avatarScale,
+                          child: _buildAvatarCircle(widget.targetUserAvatar),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 64),
+
+                  // Typography
+                  Text(
+                    'Congrats!',
+                    style: GoogleFonts.nunito(
+                      fontSize: 48,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF333333),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'It\'s a Match!',
+                    style: GoogleFonts.nunito(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFFF14C86),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 40.0),
+                    child: Text(
+                      '${widget.targetUserName} & You both liked each other',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.nunito(
+                        fontSize: 16,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ),
                    
                    const SizedBox(height: 64),
                    

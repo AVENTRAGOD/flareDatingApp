@@ -57,7 +57,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFDE8F5), // Light pink background
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
@@ -71,7 +71,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                     style: GoogleFonts.nunito(
                       fontSize: 32,
                       fontWeight: FontWeight.w900,
-                      color: Colors.black,
+                      color: const Color(0xFF333333),
                     ),
                   ),
                 ],
@@ -83,19 +83,20 @@ class _MatchesScreenState extends State<MatchesScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Row(
                 children: [
-                  Expanded(child: Divider(color: Colors.grey[400])),
+                  Expanded(child: Divider(color: Colors.grey[200])),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
                     child: Text(
                       'Today',
                       style: GoogleFonts.nunito(
                         fontSize: 12,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[400],
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.2,
                       ),
                     ),
                   ),
-                  Expanded(child: Divider(color: Colors.grey[400])),
+                  Expanded(child: Divider(color: Colors.grey[200])),
                 ],
               ),
             ),
@@ -104,14 +105,14 @@ class _MatchesScreenState extends State<MatchesScreen> {
             // Grid View
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const Center(child: CircularProgressIndicator(color: Color(0xFFF14C86)))
                   : _likedUsers.isEmpty
                       ? Center(
                           child: Text(
                             'No matches yet. Go swipe right!',
                             style: GoogleFonts.nunito(
                               fontSize: 16,
-                              color: Colors.grey[600],
+                              color: Colors.grey[400],
                             ),
                           ),
                         )
@@ -119,7 +120,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                           padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
                           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
-                            childAspectRatio: 0.65, // Taller cards
+                            childAspectRatio: 0.65, 
                             crossAxisSpacing: 16,
                             mainAxisSpacing: 16,
                           ),

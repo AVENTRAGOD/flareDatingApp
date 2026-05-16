@@ -10,12 +10,12 @@ class BePatientScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFDE8F5), // Light pinkish
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+          icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF333333)),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -25,7 +25,7 @@ class BePatientScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const Spacer(),
-            
+
             // Single Outline Avatar Circle
             Center(
               child: Container(
@@ -34,59 +34,68 @@ class BePatientScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: const Color(0xFF322369), // Dark purple border
+                    color: const Color(0xFFF14C86), 
                     width: 3,
                   ),
                 ),
                 child: ClipOval(
-                  child: Builder(builder: (context) {
-                    ImageProvider? imgProvider;
-                    if (targetUserAvatar.isNotEmpty) {
-                      if (targetUserAvatar.startsWith('data:image')) {
-                        try { imgProvider = MemoryImage(base64Decode(targetUserAvatar.split(',').last)); } catch (_) {}
-                      } else {
-                        imgProvider = NetworkImage(targetUserAvatar);
+                  child: Builder(
+                    builder: (context) {
+                      ImageProvider? imgProvider;
+                      if (targetUserAvatar.isNotEmpty) {
+                        if (targetUserAvatar.startsWith('data:image')) {
+                          try {
+                            imgProvider = MemoryImage(
+                              base64Decode(targetUserAvatar.split(',').last),
+                            );
+                          } catch (_) {}
+                        } else {
+                          imgProvider = NetworkImage(targetUserAvatar);
+                        }
                       }
-                    }
-                    return imgProvider != null
-                        ? Image(image: imgProvider, fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _fallbackIcon())
-                        : _fallbackIcon();
-                  }),
+                      return imgProvider != null
+                          ? Image(
+                            image: imgProvider,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _fallbackIcon(),
+                          )
+                          : _fallbackIcon();
+                    },
+                  ),
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Text Content
             Text(
               'Be Patient',
               style: GoogleFonts.nunito(
                 fontSize: 36,
                 fontWeight: FontWeight.w900,
-                color: const Color(0xFF322369), // Dark purple
+                color: const Color(0xFF333333),
               ),
             ),
-            
+
             const SizedBox(height: 12),
-            
+
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 40.0),
               child: Text(
-                'Don\'t loose heart, keep browsing to\nfind your best match',
+                'Don\'t lose heart, keep browsing to\nfind your best match',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.nunito(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFF5E5088),
+                  color: Colors.grey[600],
                   height: 1.4,
                 ),
               ),
             ),
-            
+
             const Spacer(),
-            
+
             // Start Swiping CTA
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -95,12 +104,12 @@ class BePatientScreen extends StatelessWidget {
                 style: GoogleFonts.nunito(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFFC76CD9), // Pinkish hue
+                  color: const Color(0xFFF14C86),
                   letterSpacing: 1,
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 48),
           ],
         ),

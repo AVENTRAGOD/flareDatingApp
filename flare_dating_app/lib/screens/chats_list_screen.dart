@@ -17,7 +17,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFDE8F5), // Light pinkish background
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -30,7 +30,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                 style: GoogleFonts.nunito(
                   fontSize: 32,
                   fontWeight: FontWeight.w900,
-                  color: const Color(0xFF322369),
+                  color: const Color(0xFF333333),
                 ),
               ),
             ),
@@ -151,15 +151,9 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: const Color(0xFFF9F9F9),
               borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              border: Border.all(color: Colors.grey[100]!),
             ),
             child: Row(
               children: [
@@ -168,22 +162,30 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: _resolveAvatar(avatarPath) == null ? const Color(0xFF322369) : Colors.grey[300],
+                    color: _resolveAvatar(avatarPath) == null
+                        ? const Color(0xFFF14C86).withOpacity(0.1)
+                        : Colors.grey[200],
                     borderRadius: BorderRadius.circular(16),
-                    image: _resolveAvatar(avatarPath) != null
-                        ? DecorationImage(
-                            image: _resolveAvatar(avatarPath)!,
-                            fit: BoxFit.cover,
-                          )
-                        : null,
+                    image:
+                        _resolveAvatar(avatarPath) != null
+                            ? DecorationImage(
+                              image: _resolveAvatar(avatarPath)!,
+                              fit: BoxFit.cover,
+                            )
+                            : null,
                   ),
-                  child: _resolveAvatar(avatarPath) == null
-                    ? const Icon(Icons.person, color: Colors.white, size: 30)
-                    : null,
+                  child:
+                      _resolveAvatar(avatarPath) == null
+                          ? const Icon(
+                            Icons.person,
+                            color: Color(0xFFF14C86),
+                            size: 30,
+                          )
+                          : null,
                 ),
-                
+
                 const SizedBox(width: 16),
-                
+
                 // Name and Last Message
                 Expanded(
                   child: Column(
@@ -197,7 +199,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                               style: GoogleFonts.nunito(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF322369),
+                                color: const Color(0xFF333333),
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -209,10 +211,10 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                             width: 10,
                             height: 10,
                             decoration: const BoxDecoration(
-                              color: Color(0xFF20D04A), // Figma green dot
+                              color: Color(0xFF20D04A),
                               shape: BoxShape.circle,
                             ),
-                          )
+                          ),
                         ],
                       ),
                       const SizedBox(height: 6),

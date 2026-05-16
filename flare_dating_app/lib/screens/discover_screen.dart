@@ -126,94 +126,98 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          // Background mesh gradient feel
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment.topLeft,
-                  radius: 1.5,
-                  colors: [Color(0xFF1A1635), Color(0xFF0D0B1F)],
-                ),
-              ),
-            ),
-          ),
-          
-          SafeArea(
-            child: Column(
-              children: [
-                // Premium Header
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Minimal Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Explore',
-                            style: GoogleFonts.outfit(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              letterSpacing: -1,
-                            ),
-                          ),
-                          Text(
-                            'Find your perfect match',
-                            style: GoogleFonts.outfit(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w400,
-                              color: Colors.white.withOpacity(0.5),
-                            ),
-                          ),
-                        ],
+                      Text(
+                        'Explore',
+                        style: GoogleFonts.nunito(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF333333),
+                        ),
                       ),
-                      Row(
-                        children: [
-                          _buildHeaderIcon(Icons.search_rounded, () {
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => SearchUsersScreen(currentUserEmail: widget.currentUserEmail)));
-                          }),
-                          const SizedBox(width: 12),
-                          _buildHeaderIcon(Icons.notifications_none_rounded, () {
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => NotificationsScreen(currentUserEmail: widget.currentUserEmail)));
-                          }),
-                        ],
+                      Text(
+                        'Find your perfect match',
+                        style: GoogleFonts.nunito(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.grey[500],
+                        ),
                       ),
                     ],
                   ),
-                ),
-                
-                // Swipe Cards Area
-                Expanded(
-                  child: isLoading
-                      ? const Center(child: CircularProgressIndicator(color: Color(0xFFF14C86)))
-                      : users.isEmpty
-                          ? _buildEmptyState()
-                          : Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                              child: CardSwiper(
-                                controller: controller,
-                                cardsCount: users.length,
-                                onSwipe: _onSwipe,
-                                onUndo: _onUndo,
-                                numberOfCardsDisplayed: users.length > 2 ? 3 : users.length,
-                                backCardOffset: const Offset(0, 30),
-                                padding: const EdgeInsets.all(0),
-                                cardBuilder: (context, index, horizontalThresholdPercentage, verticalThresholdPercentage) {
-                                  return _buildCard(users[index]);
-                                },
-                              ),
+                  Row(
+                    children: [
+                      _buildHeaderIcon(Icons.search_rounded, () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SearchUsersScreen(
+                              currentUserEmail: widget.currentUserEmail,
                             ),
-                ),
-                const SizedBox(height: 80), // Space for floating nav bar
-              ],
+                          ),
+                        );
+                      }),
+                      const SizedBox(width: 12),
+                      _buildHeaderIcon(Icons.notifications_none_rounded, () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => NotificationsScreen(
+                              currentUserEmail: widget.currentUserEmail,
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+
+            // Swipe Cards Area
+            Expanded(
+              child: isLoading
+                  ? const Center(
+                    child: CircularProgressIndicator(color: Color(0xFFF14C86)),
+                  )
+                  : users.isEmpty
+                      ? _buildEmptyState()
+                      : Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                        child: CardSwiper(
+                          controller: controller,
+                          cardsCount: users.length,
+                          onSwipe: _onSwipe,
+                          onUndo: _onUndo,
+                          numberOfCardsDisplayed: users.length > 2 ? 3 : users.length,
+                          backCardOffset: const Offset(0, 30),
+                          padding: const EdgeInsets.all(0),
+                          cardBuilder: (
+                            context,
+                            index,
+                            horizontalThresholdPercentage,
+                            verticalThresholdPercentage,
+                          ) {
+                            return _buildCard(users[index]);
+                          },
+                        ),
+                      ),
+            ),
+            const SizedBox(height: 80), // Space for nav bar
+          ],
+        ),
       ),
     );
   }
@@ -224,11 +228,11 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.05),
+          color: const Color(0xFFF9F9F9),
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          border: Border.all(color: Colors.grey[200]!),
         ),
-        child: Icon(icon, color: Colors.white, size: 22),
+        child: Icon(icon, color: const Color(0xFFF14C86), size: 22),
       ),
     );
   }
@@ -240,28 +244,29 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.03),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF9F9F9),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.auto_awesome_rounded, size: 64, color: const Color(0xFF8B51E5).withOpacity(0.5)),
+            child: Icon(
+              Icons.auto_awesome_rounded,
+              size: 64,
+              color: const Color(0xFFF14C86).withOpacity(0.5),
+            ),
           ),
           const SizedBox(height: 24),
           Text(
             'All caught up!',
-            style: GoogleFonts.outfit(
+            style: GoogleFonts.nunito(
               fontSize: 24,
               fontWeight: FontWeight.w700,
-              color: Colors.white,
+              color: const Color(0xFF333333),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Check back later for more profiles',
-            style: GoogleFonts.outfit(
-              fontSize: 16,
-              color: Colors.white.withOpacity(0.5),
-            ),
+            style: GoogleFonts.nunito(fontSize: 16, color: Colors.grey[500]),
           ),
           const SizedBox(height: 32),
           ElevatedButton(
@@ -270,10 +275,15 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               backgroundColor: const Color(0xFFF14C86),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
               elevation: 0,
             ),
-            child: const Text('Refresh Feed', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Refresh Feed',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -281,7 +291,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   }
 
   Widget _buildCard(Map<String, dynamic> user) {
-    final fullName = '${user['first_name'] ?? ''} ${user['last_name'] ?? ''}'.trim();
+    final fullName =
+        '${user['first_name'] ?? ''} ${user['last_name'] ?? ''}'.trim();
     final location = user['location']?.toString() ?? 'Nearby';
     final avatarPath = user['avatar_path']?.toString() ?? '';
 
@@ -289,10 +300,11 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       onTap: () => _showUserDetails(context, user),
       child: Container(
         decoration: BoxDecoration(
+          color: Colors.white,
           borderRadius: BorderRadius.circular(32),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.4),
+              color: Colors.black.withOpacity(0.05),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -304,23 +316,23 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             fit: StackFit.expand,
             children: [
               // User Image
-              Builder(builder: (context) {
-                final imgProvider = _getAvatarImage(avatarPath);
-                return imgProvider != null
-                    ? Image(image: imgProvider, fit: BoxFit.cover)
-                    : Container(
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Color(0xFF322369), Color(0xFF16122D)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
+              Builder(
+                builder: (context) {
+                  final imgProvider = _getAvatarImage(avatarPath);
+                  return imgProvider != null
+                      ? Image(image: imgProvider, fit: BoxFit.cover)
+                      : Container(
+                        decoration: BoxDecoration(color: Colors.grey[100]),
+                        child: Icon(
+                          Icons.person_rounded,
+                          size: 100,
+                          color: Colors.grey[300],
                         ),
-                        child: Icon(Icons.person_rounded, size: 100, color: Colors.white.withOpacity(0.1)),
                       );
-              }),
-              
-              // Dark gradient overlay
+                },
+              ),
+
+              // Light gradient overlay for text readability
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
@@ -329,8 +341,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.transparent,
-                        Colors.black.withOpacity(0.1),
-                        Colors.black.withOpacity(0.9),
+                        Colors.black.withOpacity(0.05),
+                        Colors.black.withOpacity(0.6),
                       ],
                       stops: const [0.0, 0.6, 1.0],
                     ),
@@ -356,7 +368,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                             children: [
                               Text(
                                 fullName,
-                                style: GoogleFonts.outfit(
+                                style: GoogleFonts.nunito(
                                   fontSize: 32,
                                   fontWeight: FontWeight.w800,
                                   color: Colors.white,
@@ -366,11 +378,15 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                               const SizedBox(height: 4),
                               Row(
                                 children: [
-                                  Icon(Icons.location_on_rounded, size: 14, color: Colors.white.withOpacity(0.6)),
+                                  Icon(
+                                    Icons.location_on_rounded,
+                                    size: 14,
+                                    color: Colors.white.withOpacity(0.6),
+                                  ),
                                   const SizedBox(width: 4),
                                   Text(
                                     location,
-                                    style: GoogleFonts.outfit(
+                                    style: GoogleFonts.nunito(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w400,
                                       color: Colors.white.withOpacity(0.7),
@@ -381,26 +397,46 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                             ],
                           ),
                         ),
-                        
+
                         // Action Buttons
                         Row(
                           children: [
-                            _buildCardAction(Icons.chat_bubble_rounded, Colors.white.withOpacity(0.2), () {
-                              Navigator.push(context, MaterialPageRoute(builder: (context) => ChatRoomScreen(
-                                currentUserEmail: widget.currentUserEmail,
-                                targetUserEmail: user['email']?.toString() ?? '',
-                                targetUserName: fullName,
-                                targetUserAvatar: avatarPath,
-                              )));
-                            }),
+                            _buildCardAction(
+                              Icons.chat_bubble_rounded,
+                              Colors.white.withOpacity(0.2),
+                              () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ChatRoomScreen(
+                                      currentUserEmail: widget.currentUserEmail,
+                                      targetUserEmail:
+                                          user['email']?.toString() ?? '',
+                                      targetUserName: fullName,
+                                      targetUserAvatar: avatarPath,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                             const SizedBox(width: 12),
-                            _buildCardAction(Icons.favorite_rounded, const Color(0xFFF14C86), () async {
-                              final targetEmail = user['email']?.toString() ?? '';
-                              await DatabaseService.instance.forceMutualMatch(widget.currentUserEmail, targetEmail);
-                              if (mounted) {
-                                controller.swipe(CardSwiperDirection.right);
-                              }
-                            }, isPrimary: true),
+                            _buildCardAction(
+                              Icons.favorite_rounded,
+                              const Color(0xFFF14C86),
+                              () async {
+                                final targetEmail =
+                                    user['email']?.toString() ?? '';
+                                await DatabaseService.instance
+                                    .forceMutualMatch(
+                                      widget.currentUserEmail,
+                                      targetEmail,
+                                    );
+                                if (mounted) {
+                                  controller.swipe(CardSwiperDirection.right);
+                                }
+                              },
+                              isPrimary: true,
+                            ),
                           ],
                         ),
                       ],
@@ -415,7 +451,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     );
   }
 
-  Widget _buildCardAction(IconData icon, Color color, VoidCallback onTap, {bool isPrimary = false}) {
+  Widget _buildCardAction(
+    IconData icon,
+    Color color,
+    VoidCallback onTap, {
+    bool isPrimary = false,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: ClipRRect(
@@ -427,7 +468,10 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             decoration: BoxDecoration(
               color: isPrimary ? color : color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.1), width: 1.5),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.1),
+                width: 1.5,
+              ),
             ),
             child: Icon(icon, color: Colors.white, size: 24),
           ),
@@ -452,7 +496,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         return Container(
           height: MediaQuery.of(context).size.height * 0.85,
           decoration: const BoxDecoration(
-            color: Color(0xFF16122D),
+            color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
           ),
           child: Column(
@@ -469,22 +513,38 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                         child: Stack(
                           children: [
                             Positioned.fill(
-                              child: Builder(builder: (context) {
-                                final imgProvider = _getAvatarImage(avatarPath);
-                                return imgProvider != null
-                                    ? Image(image: imgProvider, fit: BoxFit.cover)
-                                    : Container(color: Colors.white.withOpacity(0.05));
-                              }),
+                              child: Builder(
+                                builder: (context) {
+                                  final imgProvider =
+                                      _getAvatarImage(avatarPath);
+                                  return imgProvider != null
+                                      ? Image(
+                                        image: imgProvider,
+                                        fit: BoxFit.cover,
+                                      )
+                                      : Container(
+                                        color: Colors.grey[100],
+                                        child: Icon(
+                                          Icons.person,
+                                          size: 100,
+                                          color: Colors.grey[200],
+                                        ),
+                                      );
+                                },
+                              ),
                             ),
                             Positioned(
                               top: 20,
                               right: 20,
-                              child: _buildHeaderIcon(Icons.close_rounded, () => Navigator.pop(context)),
+                              child: _buildHeaderIcon(
+                                Icons.close_rounded,
+                                () => Navigator.pop(context),
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      
+
                       Padding(
                         padding: const EdgeInsets.all(32.0),
                         child: Column(
@@ -492,22 +552,26 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                           children: [
                             Text(
                               fullName,
-                              style: GoogleFonts.outfit(
+                              style: GoogleFonts.nunito(
                                 fontSize: 36,
                                 fontWeight: FontWeight.w800,
-                                color: Colors.white,
+                                color: const Color(0xFF333333),
                               ),
                             ),
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                const Icon(Icons.location_on_rounded, color: Color(0xFFF14C86), size: 18),
+                                const Icon(
+                                  Icons.location_on_rounded,
+                                  color: Color(0xFFF14C86),
+                                  size: 18,
+                                ),
                                 const SizedBox(width: 4),
                                 Text(
                                   location,
-                                  style: GoogleFonts.outfit(
+                                  style: GoogleFonts.nunito(
                                     fontSize: 18,
-                                    color: Colors.white.withOpacity(0.6),
+                                    color: Colors.grey[600],
                                   ),
                                 ),
                               ],
@@ -515,31 +579,47 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                             const SizedBox(height: 32),
                             Text(
                               'Interests',
-                              style: GoogleFonts.outfit(
+                              style: GoogleFonts.nunito(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                                color: const Color(0xFF333333),
                               ),
                             ),
                             const SizedBox(height: 16),
                             Wrap(
                               spacing: 10,
                               runSpacing: 10,
-                              children: interests.map((i) => Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF14C86).withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: const Color(0xFFF14C86).withOpacity(0.3)),
-                                ),
-                                child: Text(
-                                  i,
-                                  style: GoogleFonts.outfit(
-                                    color: const Color(0xFFF14C86),
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              )).toList(),
+                              children:
+                                  interests
+                                      .map(
+                                        (i) => Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 8,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: const Color(
+                                              0xFFF14C86,
+                                            ).withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            border: Border.all(
+                                              color: const Color(
+                                                0xFFF14C86,
+                                              ).withOpacity(0.3),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            i,
+                                            style: GoogleFonts.nunito(
+                                              color: const Color(0xFFF14C86),
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
                             ),
                           ],
                         ),
